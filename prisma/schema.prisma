@@ -1,0 +1,411 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AccountStatus {
+  ACTIVE
+  DEACTIVATED
+}
+
+enum DevicePlatform {
+  ANDROID
+  IOS
+}
+
+enum StaffRole {
+  ADMIN
+  RECEPTIONIST
+  NURSE
+}
+
+enum Gender {
+  FEMALE
+  MALE
+  NON_BINARY
+  OTHER
+  PREFER_NOT_TO_SAY
+}
+
+enum CatalogStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum Weekday {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+
+enum LeaveStatus {
+  ACTIVE
+  CANCELLED
+}
+
+enum DoctorDayStatus {
+  PRESENT
+  NOT_YET_ARRIVED
+  ON_BREAK
+  ON_LEAVE
+}
+
+enum BookingStatus {
+  BOOKED
+  CALLED
+  COMPLETED
+  SKIPPED
+  CANCELLED
+}
+
+enum BookingSource {
+  APP
+  STAFF
+  WALK_IN
+}
+
+enum DocumentType {
+  PRESCRIPTION
+  LAB_REPORT
+  IMAGING
+  OTHER
+}
+
+enum NotificationType {
+  OTP
+  BOOKING_CONFIRMED
+  BOOKING_CANCELLED
+  DOCTOR_LEAVE
+  TURN_APPROACHING
+  DOCTOR_STATUS
+  DOCUMENT_ADDED
+}
+
+enum NotificationChannel {
+  SMS
+  PUSH
+  IN_APP
+}
+
+enum DeliveryStatus {
+  QUEUED
+  SENT
+  FAILED
+}
+
+enum QueueAction {
+  CALLED
+  RECALLED
+  COMPLETED
+  SKIPPED
+  WALK_IN_ADDED
+  DOCTOR_STATUS_CHANGED
+  BOOKING_CANCELLED
+}
+
+enum OutboxStatus {
+  PENDING
+  PROCESSING
+  PROCESSED
+  FAILED
+}
+
+model PatientAccount {
+  id         String        @id @default(uuid()) @db.Uuid
+  mobile     String        @unique @db.VarChar(20)
+  verifiedAt DateTime?     @db.Timestamptz(3)
+  status     AccountStatus @default(ACTIVE)
+  createdAt  DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt  DateTime      @updatedAt @db.Timestamptz(3)
+
+  profiles      PatientProfile[]
+  bookings      Booking[]        @relation("BookingBookedByAccount")
+  notifications Notification[]
+  devices       PatientDevice[]
+}
+
+model PatientDevice {
+  id         String         @id @default(uuid()) @db.Uuid
+  accountId  String         @db.Uuid
+  platform   DevicePlatform
+  pushToken  String         @unique @db.VarChar(512)
+  isActive   Boolean        @default(true)
+  lastSeenAt DateTime?      @db.Timestamptz(3)
+  createdAt  DateTime       @default(now()) @db.Timestamptz(3)
+  updatedAt  DateTime       @updatedAt @db.Timestamptz(3)
+
+  account PatientAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId, isActive])
+}
+
+model PatientProfile {
+  id           String    @id @default(uuid()) @db.Uuid
+  accountId    String?   @db.Uuid
+  name         String    @db.VarChar(160)
+  dateOfBirth  DateTime? @db.Date
+  gender       Gender?
+  mobile       String?   @db.VarChar(20)
+  address      String?   @db.VarChar(500)
+  bloodGroup   String?   @db.VarChar(5)
+  relationship String?   @db.VarChar(40)
+  createdAt    DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime  @updatedAt @db.Timestamptz(3)
+
+  account  PatientAccount? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  bookings Booking[]
+
+  @@index([accountId])
+  @@index([name])
+}
+
+model OtpChallenge {
+  id           String    @id @default(uuid()) @db.Uuid
+  mobile       String    @db.VarChar(20)
+  codeHash     String    @db.VarChar(255)
+  expiresAt    DateTime  @db.Timestamptz(3)
+  attemptCount Int       @default(0)
+  consumedAt   DateTime? @db.Timestamptz(3)
+  createdAt    DateTime  @default(now()) @db.Timestamptz(3)
+
+  @@index([mobile, createdAt])
+  @@index([expiresAt])
+}
+
+model StaffUser {
+  id           String    @id @default(uuid()) @db.Uuid
+  name         String    @db.VarChar(160)
+  email        String    @unique @db.VarChar(254)
+  passwordHash String    @db.VarChar(255)
+  role         StaffRole
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime  @updatedAt @db.Timestamptz(3)
+
+  leavesCreated     DoctorLeave[]     @relation("LeaveCreatedBy")
+  bookingsCreated   Booking[]         @relation("BookingCreatedByStaff")
+  documentsUploaded MedicalDocument[] @relation("DocumentUploadedBy")
+  queueEvents       QueueEvent[]
+  auditLogs         AuditLog[]
+}
+
+model Department {
+  id          String        @id @default(uuid()) @db.Uuid
+  name        String        @unique @db.VarChar(120)
+  description String?       @db.VarChar(500)
+  status      CatalogStatus @default(ACTIVE)
+  createdAt   DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime      @updatedAt @db.Timestamptz(3)
+
+  doctors Doctor[]
+}
+
+model Doctor {
+  id              String        @id @default(uuid()) @db.Uuid
+  departmentId    String        @db.Uuid
+  name            String        @db.VarChar(160)
+  photoStorageKey String?       @db.VarChar(500)
+  qualification   String?       @db.VarChar(200)
+  specialization  String?       @db.VarChar(200)
+  experienceYears Int?
+  consultationFee Decimal       @db.Decimal(10, 2)
+  status          CatalogStatus @default(ACTIVE)
+  createdAt       DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime      @updatedAt @db.Timestamptz(3)
+
+  department  Department       @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  schedules   DoctorSchedule[]
+  leaves      DoctorLeave[]
+  days        DoctorDay[]
+  bookings    Booking[]
+  queueEvents QueueEvent[]
+
+  @@index([departmentId, status])
+}
+
+model DoctorSchedule {
+  id        String   @id @default(uuid()) @db.Uuid
+  doctorId  String   @db.Uuid
+  weekday   Weekday
+  startTime DateTime @db.Time(0)
+  endTime   DateTime @db.Time(0)
+  maxTokens Int
+  isActive  Boolean  @default(true)
+
+  doctor Doctor @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+
+  @@index([doctorId, weekday, isActive])
+}
+
+model DoctorLeave {
+  id               String      @id @default(uuid()) @db.Uuid
+  doctorId         String      @db.Uuid
+  startsAt         DateTime    @db.Timestamptz(3)
+  endsAt           DateTime    @db.Timestamptz(3)
+  reason           String?     @db.VarChar(500)
+  status           LeaveStatus @default(ACTIVE)
+  createdByStaffId String      @db.Uuid
+  createdAt        DateTime    @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime    @updatedAt @db.Timestamptz(3)
+
+  doctor         Doctor    @relation(fields: [doctorId], references: [id], onDelete: Restrict)
+  createdByStaff StaffUser @relation("LeaveCreatedBy", fields: [createdByStaffId], references: [id], onDelete: Restrict)
+
+  @@index([doctorId, status, startsAt, endsAt])
+}
+
+model DoctorDay {
+  id                 String          @id @default(uuid()) @db.Uuid
+  doctorId           String          @db.Uuid
+  date               DateTime        @db.Date
+  status             DoctorDayStatus @default(NOT_YET_ARRIVED)
+  currentTokenNumber Int             @default(0)
+  updatedAt          DateTime        @updatedAt @db.Timestamptz(3)
+
+  doctor Doctor @relation(fields: [doctorId], references: [id], onDelete: Restrict)
+
+  @@unique([doctorId, date])
+}
+
+model Booking {
+  id                 String        @id @default(uuid()) @db.Uuid
+  patientProfileId   String        @db.Uuid
+  doctorId           String        @db.Uuid
+  date               DateTime      @db.Date
+  tokenNumber        Int
+  status             BookingStatus @default(BOOKED)
+  source             BookingSource
+  feeAtBooking       Decimal       @db.Decimal(10, 2)
+  bookedByAccountId  String?       @db.Uuid
+  createdByStaffId   String?       @db.Uuid
+  cancellationReason String?       @db.VarChar(500)
+  cancelledAt        DateTime?     @db.Timestamptz(3)
+  createdAt          DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime      @updatedAt @db.Timestamptz(3)
+
+  patientProfile  PatientProfile  @relation(fields: [patientProfileId], references: [id], onDelete: Restrict)
+  doctor          Doctor          @relation(fields: [doctorId], references: [id], onDelete: Restrict)
+  bookedByAccount PatientAccount? @relation("BookingBookedByAccount", fields: [bookedByAccountId], references: [id], onDelete: SetNull)
+  createdByStaff  StaffUser?      @relation("BookingCreatedByStaff", fields: [createdByStaffId], references: [id], onDelete: SetNull)
+  visit           Visit?
+  queueEvents     QueueEvent[]
+  notifications   Notification[]
+
+  @@unique([doctorId, date, tokenNumber])
+  @@index([patientProfileId, date])
+  @@index([doctorId, date, status])
+}
+
+model QueueEvent {
+  id          String      @id @default(uuid()) @db.Uuid
+  doctorId    String      @db.Uuid
+  date        DateTime    @db.Date
+  bookingId   String?     @db.Uuid
+  staffUserId String      @db.Uuid
+  action      QueueAction
+  details     Json?
+  createdAt   DateTime    @default(now()) @db.Timestamptz(3)
+
+  doctor    Doctor    @relation(fields: [doctorId], references: [id], onDelete: Restrict)
+  booking   Booking?  @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  staffUser StaffUser @relation(fields: [staffUserId], references: [id], onDelete: Restrict)
+
+  @@index([doctorId, date, createdAt])
+  @@index([bookingId, createdAt])
+}
+
+model Visit {
+  id          String    @id @default(uuid()) @db.Uuid
+  bookingId   String    @unique @db.Uuid
+  notes       String?
+  completedAt DateTime? @db.Timestamptz(3)
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(3)
+
+  booking   Booking           @relation(fields: [bookingId], references: [id], onDelete: Restrict)
+  documents MedicalDocument[]
+}
+
+model MedicalDocument {
+  id                String       @id @default(uuid()) @db.Uuid
+  visitId           String       @db.Uuid
+  title             String       @db.VarChar(200)
+  type              DocumentType @default(OTHER)
+  storageKey        String       @unique @db.VarChar(500)
+  mimeType          String       @db.VarChar(100)
+  fileSizeBytes     BigInt
+  uploadedByStaffId String       @db.Uuid
+  uploadedAt        DateTime     @default(now()) @db.Timestamptz(3)
+  deletedAt         DateTime?    @db.Timestamptz(3)
+
+  visit           Visit     @relation(fields: [visitId], references: [id], onDelete: Restrict)
+  uploadedByStaff StaffUser @relation("DocumentUploadedBy", fields: [uploadedByStaffId], references: [id], onDelete: Restrict)
+
+  @@index([visitId, uploadedAt])
+}
+
+model Notification {
+  id                String              @id @default(uuid()) @db.Uuid
+  patientAccountId  String?             @db.Uuid
+  bookingId         String?             @db.Uuid
+  type              NotificationType
+  channel           NotificationChannel
+  status            DeliveryStatus      @default(QUEUED)
+  providerMessageId String?             @db.VarChar(200)
+  errorCode         String?             @db.VarChar(100)
+  sentAt            DateTime?           @db.Timestamptz(3)
+  readAt            DateTime?           @db.Timestamptz(3)
+  createdAt         DateTime            @default(now()) @db.Timestamptz(3)
+
+  patientAccount PatientAccount? @relation(fields: [patientAccountId], references: [id], onDelete: SetNull)
+  booking        Booking?        @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+
+  @@index([patientAccountId, createdAt])
+  @@index([status, createdAt])
+}
+
+model AuditLog {
+  id          String   @id @default(uuid()) @db.Uuid
+  staffUserId String?  @db.Uuid
+  action      String   @db.VarChar(120)
+  entityType  String   @db.VarChar(100)
+  entityId    String   @db.VarChar(100)
+  details     Json?
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+
+  staffUser StaffUser? @relation(fields: [staffUserId], references: [id], onDelete: SetNull)
+
+  @@index([entityType, entityId, createdAt])
+  @@index([staffUserId, createdAt])
+}
+
+model OutboxEvent {
+  id          String       @id @default(uuid()) @db.Uuid
+  eventType   String       @db.VarChar(120)
+  payload     Json
+  status      OutboxStatus @default(PENDING)
+  attempts    Int          @default(0)
+  availableAt DateTime     @default(now()) @db.Timestamptz(3)
+  processedAt DateTime?    @db.Timestamptz(3)
+  createdAt   DateTime     @default(now()) @db.Timestamptz(3)
+
+  @@index([status, availableAt])
+}
+
+model HospitalSettings {
+  id             String   @id @default("default") @db.VarChar(40)
+  name           String   @db.VarChar(160)
+  logoStorageKey String?  @db.VarChar(500)
+  address        String?  @db.VarChar(500)
+  contactNumber  String?  @db.VarChar(20)
+  timezone       String   @default("Asia/Kolkata") @db.VarChar(100)
+  updatedAt      DateTime @updatedAt @db.Timestamptz(3)
+}
