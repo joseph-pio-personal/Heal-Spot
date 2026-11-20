@@ -1,29 +1,16 @@
 {
   "name": "heal-spot",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "directories": {
-    "doc": "docs"
-  },
+  "private": true,
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev:api": "npm --prefix apps/api run dev",
+    "dev:web": "npm --prefix apps/web run dev",
+    "build:web": "npm --prefix apps/web run build",
+    "db:generate": "npm --prefix apps/api run prisma:generate",
+    "db:migrate": "npm --prefix apps/api run prisma:migrate --",
+    "admin:create": "npm --prefix apps/api run admin:create"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/joseph-pio-personal/Heal-Spot.git"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/joseph-pio-personal/Heal-Spot/issues"
-  },
-  "homepage": "https://github.com/joseph-pio-personal/Heal-Spot#readme",
-  "devDependencies": {
-    "prisma": "^6.19.3"
-  },
-  "dependencies": {
-    "@prisma/client": "^6.19.3"
+  "engines": {
+    "node": ">=20"
   }
 }

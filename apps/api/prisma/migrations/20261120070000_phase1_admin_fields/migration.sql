@@ -1,0 +1,5 @@
+ALTER TABLE "StaffUser"
+ADD COLUMN "sessionVersion" INTEGER NOT NULL DEFAULT 0;
+
+ALTER TABLE "Doctor"
+ADD COLUMN "photoUrl" VARCHAR(1000);

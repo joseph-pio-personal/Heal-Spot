@@ -1,0 +1,30 @@
+{
+  "name": "@heal-spot/api",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "nodemon --watch src --ext js --exec node src/server.js",
+    "start": "node src/server.js",
+    "prisma:generate": "node scripts/prisma.js generate",
+    "prisma:migrate": "node scripts/prisma.js migrate dev",
+    "admin:create": "node scripts/create-admin.js",
+    "textbee:test": "node src/test-textbee.js",
+    "test": "node --test test/textbee.test.js"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.19.3",
+    "bcryptjs": "^3.0.2",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.5.0",
+    "helmet": "^8.0.0",
+    "jsonwebtoken": "^9.0.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.9",
+    "prisma": "^6.19.3"
+  }
+}

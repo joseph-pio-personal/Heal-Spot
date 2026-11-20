@@ -10,9 +10,8 @@ workflows, and a doctor-facing app.
 
 ## Initial architecture
 
-- **Patient app:** React Native is a reasonable choice for the Android/iOS
-  requirement; confirm this choice before implementation.
-- **Staff/admin panel:** React web application with role-based screens.
+- **Patient and staff/admin web app:** React with role-based screens; the
+  current foundation is a responsive web application.
 - **API:** Node.js + Express REST API; use WebSockets for queue/status changes
   when practical, with polling as a fallback.
 - **Persistence:** PostgreSQL accessed through Prisma. Keep the password out of
@@ -26,7 +25,7 @@ workflows, and a doctor-facing app.
 
 ## Initial data model
 
-The first Prisma draft is in [`schema.prisma`](../prisma/schema.prisma).
+The Prisma schema is in [`schema.prisma`](../apps/api/prisma/schema.prisma).
 
 | Area | Tables | Purpose |
 | --- | --- | --- |
@@ -57,22 +56,23 @@ Important database decisions:
 - Inactive departments/doctors should be retained, not hard-deleted, to
   preserve booking and visit history.
 
-## Delivery plan
+## Delivery plan and status
 
-1. **Confirm rules and foundation:** settle the open questions below; set up
-   React, Express, Prisma/PostgreSQL, configuration, migrations, logging, and
-   role-based authentication.
-2. **Catalogue and staff panel:** implement department/doctor CRUD, weekly
-   schedules, fees, staff accounts, and white/red responsive UI.
-3. **Booking and live queue:** implement patient profiles, doctor browsing,
+1. **Foundation — implemented:** React, Express, Prisma/PostgreSQL,
+   configuration, migrations, patient/staff sign-in, and role-based access.
+2. **Catalogue and staff panel — implemented:** department and doctor
+   management, weekly schedules, fees, public active catalog endpoints, staff
+   account management, audit logging, session revocation, and a responsive
+   white/red admin workspace.
+3. **Booking and live queue — remaining:** implement patient profiles, doctor browsing,
    atomic token allocation, booking/cancellation, walk-ins, queue actions, and
    patient queue updates.
-4. **Leave and notifications:** implement leave previews and booking
+4. **Leave and notifications — remaining:** implement leave previews and booking
    cancellation, transactional outbox processing, SMS/push delivery, and
    delivery retries.
-5. **Visits and document vault:** implement visit history, staff uploads,
+5. **Visits and document vault — remaining:** implement visit history, staff uploads,
    private storage, access checks, document viewing/download, and audit trails.
-6. **Hardening and launch:** add focused tests, security/privacy review, backup
+6. **Hardening and launch — remaining:** add focused tests, security/privacy review, backup
    and restore checks, load/concurrency tests, hospital UAT, staff training, and
    staged production rollout.
 
@@ -101,6 +101,7 @@ communicate booking or doctor status.
 7. Final mobile framework, Tamil localization scope, maximum upload size, and
    SMS/DLT account ownership.
 
-The database schema is an initial draft. Generate and review the first Prisma
-migration only after these rules and the development database connection are
-confirmed.
+The initial database schema and additive Phase 1 migration are in
+`apps/api/prisma`. Apply the migrations to the configured development database
+with `npm run db:migrate -- --name phase1_admin_fields`. SMS delivery remains
+unavailable until an SMS provider and production OTP configuration are set up.

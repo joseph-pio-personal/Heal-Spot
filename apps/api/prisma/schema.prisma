@@ -192,6 +192,7 @@ model StaffUser {
   passwordHash String    @db.VarChar(255)
   role         StaffRole
   isActive     Boolean   @default(true)
+  sessionVersion Int     @default(0)
   createdAt    DateTime  @default(now()) @db.Timestamptz(3)
   updatedAt    DateTime  @updatedAt @db.Timestamptz(3)
 
@@ -218,6 +219,7 @@ model Doctor {
   departmentId    String        @db.Uuid
   name            String        @db.VarChar(160)
   photoStorageKey String?       @db.VarChar(500)
+  photoUrl        String?       @db.VarChar(1000)
   qualification   String?       @db.VarChar(200)
   specialization  String?       @db.VarChar(200)
   experienceYears Int?
