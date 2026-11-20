@@ -46,11 +46,6 @@ enum Weekday {
   SUNDAY
 }
 
-enum LeaveType {
-  FULL_DAY
-  HALF_DAY
-  CUSTOM
-}
 enum LeaveStatus {
   ACTIVE
   CANCELLED
