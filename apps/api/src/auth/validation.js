@@ -1,4 +1,3 @@
-import { createHmac } from "node:crypto";
 import { ApiError } from "../lib/api-error.js";
 
 export const STAFF_ROLES = new Set(["ADMIN", "RECEPTIONIST", "NURSE"]);
@@ -34,15 +33,35 @@ export function normalizeEmail(value) {
   return email;
 }
 
+export function normalizeUsername(value) {
+  if (typeof value !== "string") {
+    throw new ApiError(400, "Enter a valid username.");
+  }
+  const username = value.trim().toLowerCase();
+  if (!/^[a-z0-9][a-z0-9._-]{2,31}$/.test(username)) {
+    throw new ApiError(400, "Username must be 3-32 characters and use letters, numbers, dots, underscores, or hyphens.");
+  }
+  return username;
+}
+
+export function normalizePatientIdentifier(value) {
+  if (typeof value !== "string" || !value.trim()) {
+    throw new ApiError(400, "Enter your email or username.");
+  }
+  const identifier = value.trim();
+  return identifier.includes("@") ? normalizeEmail(identifier) : normalizeUsername(identifier);
+}
+
+export function normalizeOptionalMobile(value) {
+  if (value === undefined || value === null || (typeof value === "string" && !value.trim())) {
+    return null;
+  }
+  return normalizeMobile(value);
+}
+
 export function passwordFromRequest(value) {
   if (typeof value !== "string" || Buffer.byteLength(value, "utf8") < 12 || Buffer.byteLength(value, "utf8") > 72) {
     throw new ApiError(400, "Password must be between 12 and 72 bytes.");
   }
   return value;
-}
-
-export function hashOtp(mobile, code) {
-  return createHmac("sha256", process.env.JWT_SECRET)
-    .update(`${mobile}:${code}`)
-    .digest("hex");
 }

@@ -13,9 +13,15 @@ import { apiRequest } from "../../api/client.js";
 function LoginForm({ onAuthenticated, onHome }) {
   const [role, setRole] = useState("PATIENT");
   const [mode, setMode] = useState("login");
-  const [step, setStep] = useState("details");
-  const [form, setForm] = useState({ name: "", mobile: "", email: "", password: "", code: "" });
-  const [notice, setNotice] = useState("");
+  const [form, setForm] = useState({
+    name: "",
+    mobile: "",
+    email: "",
+    username: "",
+    identifier: "",
+    password: "",
+    confirmPassword: "",
+  });
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -25,48 +31,38 @@ function LoginForm({ onAuthenticated, onHome }) {
 
   const switchRole = (nextRole) => {
     setRole(nextRole);
-    setStep("details");
     setError("");
-    setNotice("");
   };
 
   const switchMode = (nextMode) => {
     setMode(nextMode);
-    setStep("details");
     setError("");
-    setNotice("");
   };
 
   const handlePatientSubmit = async (event) => {
     event.preventDefault();
     setError("");
-    setNotice("");
+    if (mode === "register" && form.password !== form.confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
     setBusy(true);
     try {
-      if (step === "details") {
-        const path = mode === "register" ? "/api/auth/patient/register" : "/api/auth/patient/login";
-        const payload = { mobile: form.mobile };
-        if (mode === "register") payload.name = form.name;
-        const result = await apiRequest(path, {
-          method: "POST",
-          body: JSON.stringify(payload),
-        });
-        setStep("verify");
-        setNotice(result.smsBatchId
-          ? `${result.message} Batch ID: ${result.smsBatchId}.`
-          : result.message);
-      } else {
-        const { user } = await apiRequest("/api/auth/patient/verify", {
-          method: "POST",
-          body: JSON.stringify({
-            mobile: form.mobile,
-            code: form.code,
-            mode,
-            ...(mode === "register" ? { name: form.name } : {}),
-          }),
-        });
-        onAuthenticated(user);
-      }
+      const registering = mode === "register";
+      const payload = registering
+        ? {
+          name: form.name,
+          email: form.email,
+          username: form.username,
+          mobile: form.mobile,
+          password: form.password,
+        }
+        : { identifier: form.identifier, password: form.password };
+      const { user } = await apiRequest(
+        registering ? "/api/auth/patient/register" : "/api/auth/patient/login",
+        { method: "POST", body: JSON.stringify(payload) },
+      );
+      onAuthenticated(user);
     } catch (requestError) {
       setError(requestError.message);
     } finally {
@@ -139,70 +135,116 @@ function LoginForm({ onAuthenticated, onHome }) {
               </button>
             </div>
             <form className="auth-form" onSubmit={handlePatientSubmit}>
-              {mode === "register" && step === "details" && (
+              {mode === "register" ? (
+                <>
+                  <label>
+                    Your name
+                    <input
+                      autoComplete="name"
+                      maxLength={160}
+                      name="name"
+                      onChange={updateForm}
+                      placeholder="Enter your full name"
+                      required
+                      value={form.name}
+                    />
+                  </label>
+                  <label>
+                    Email address
+                    <input
+                      autoComplete="email"
+                      maxLength={254}
+                      name="email"
+                      onChange={updateForm}
+                      placeholder="you@example.com"
+                      required
+                      type="email"
+                      value={form.email}
+                    />
+                  </label>
+                  <label>
+                    Username
+                    <input
+                      autoCapitalize="none"
+                      autoComplete="username"
+                      aria-describedby="patient-username-hint"
+                      maxLength={32}
+                      minLength={3}
+                      name="username"
+                      onChange={updateForm}
+                      pattern="[A-Za-z0-9][A-Za-z0-9._-]{2,31}"
+                      placeholder="Choose a username"
+                      required
+                      spellCheck={false}
+                      title="Use 3-32 letters, numbers, dots, underscores, or hyphens. No spaces."
+                      value={form.username}
+                    />
+                    <span className="input-hint" id="patient-username-hint">
+                      3-32 characters; no spaces. Use letters, numbers, dots, underscores, or hyphens.
+                    </span>
+                  </label>
+                  <label>
+                    Mobile number (optional)
+                    <input
+                      autoComplete="tel"
+                      name="mobile"
+                      onChange={updateForm}
+                      placeholder="+91 98765 43210"
+                      type="tel"
+                      value={form.mobile}
+                    />
+                  </label>
+                </>
+              ) : (
                 <label>
-                  Your name
+                  Email or username
                   <input
-                    autoComplete="name"
-                    maxLength={160}
-                    name="name"
+                    autoComplete="username"
+                    name="identifier"
                     onChange={updateForm}
-                    placeholder="Enter your full name"
+                    placeholder="Enter your email or username"
                     required
-                    value={form.name}
+                    value={form.identifier}
                   />
                 </label>
               )}
-              {(step === "details" || step === "verify") && (
+              <label>
+                Password
+                <input
+                  autoComplete={mode === "register" ? "new-password" : "current-password"}
+                  maxLength={72}
+                  minLength={12}
+                  name="password"
+                  onChange={updateForm}
+                  placeholder={mode === "register" ? "At least 12 characters" : "Enter your password"}
+                  required
+                  type="password"
+                  value={form.password}
+                />
+              </label>
+              {mode === "register" && (
                 <label>
-                  Mobile number
+                  Confirm password
                   <input
-                    autoComplete="tel"
-                    name="mobile"
+                    autoComplete="new-password"
+                    maxLength={72}
+                    minLength={12}
+                    name="confirmPassword"
                     onChange={updateForm}
-                    placeholder="+91 98765 43210"
-                    readOnly={step === "verify"}
+                    placeholder="Re-enter your password"
                     required
-                    type="tel"
-                    value={form.mobile}
+                    type="password"
+                    value={form.confirmPassword}
                   />
                 </label>
               )}
-              {step === "verify" && (
-                <label>
-                  Six-digit verification code
-                  <input
-                    autoComplete="one-time-code"
-                    inputMode="numeric"
-                    maxLength={6}
-                    name="code"
-                    onChange={updateForm}
-                    pattern="[0-9]{6}"
-                    placeholder="Enter the code"
-                    required
-                    value={form.code}
-                  />
-                </label>
-              )}
-              {notice && <p className="form-message" role="status">{notice}</p>}
               {error && <p className="form-message form-error" role="alert">{error}</p>}
               <button className="button auth-submit" disabled={busy} type="submit">
-                {busy
-                  ? "Please wait..."
-                  : step === "verify"
-                    ? "Verify and continue"
-                    : mode === "register"
-                      ? "Create patient account"
-                      : "Send sign-in code"}
+                {busy ? "Please wait..." : mode === "register" ? "Create patient account" : "Sign in"}
                 {!busy && <ArrowRight size={16} />}
               </button>
-              {step === "verify" && (
-                <button className="home-link change-number" onClick={() => { setStep("details"); setError(""); setNotice(""); }} type="button">
-                  Use a different number
-                </button>
-              )}
             </form>
-            <div className="auth-footnote"><ShieldCheck size={15} /> Your mobile number is used to secure your account.</div>
+            <div className="auth-footnote"><ShieldCheck size={15} /> Mobile is optional and never used to sign in.</div>
           </>
         ) : (
           <form className="auth-form staff-login-form" onSubmit={handleStaffSubmit}>

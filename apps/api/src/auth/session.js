@@ -1,3 +1,5 @@
+import jwt from "jsonwebtoken";
+
 const SESSION_COOKIE = "heal_spot_session";
 const SESSION_TTL_MS = 8 * 60 * 60 * 1000;
 
@@ -34,6 +36,8 @@ export function publicPatient(account) {
     id: account.id,
     role: "PATIENT",
     name: account.profiles[0]?.name ?? "Patient",
+    email: account.email,
+    username: account.username,
     mobile: account.mobile,
   };
 }

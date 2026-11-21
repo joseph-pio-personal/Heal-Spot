@@ -9,8 +9,7 @@
     "prisma:generate": "node scripts/prisma.js generate",
     "prisma:migrate": "node scripts/prisma.js migrate dev",
     "admin:create": "node scripts/create-admin.js",
-    "textbee:test": "node src/test-textbee.js",
-    "test": "node --test test/textbee.test.js"
+    "test": "node --test test/patient-auth.test.js"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",

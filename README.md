@@ -57,14 +57,10 @@ at `http://localhost:4000/api/health/ready`.
 
 ## Authentication
 
-- Patients register and log in with their mobile number and a one-time code.
-  Configure `TEXTBEE_API_KEY` and `TEXTBEE_DEVICE_ID` in `apps/api/.env` to
-  send codes through Textbee. Verify the credentials with
-  `npm --prefix apps/api run textbee:test`. Without Textbee credentials,
-  local development can use `OTP_DEV_MODE=true`; the code is printed in the
-  API terminal and is never returned from the API. This fallback is disabled
-  when `NODE_ENV=production`. Textbee accepting an SMS request does not
-  guarantee delivery; use its dashboard to track the returned batch.
+- Patients register with their name, email, username, and password, then sign
+  in with either their email or username and password. Mobile is optional
+  contact information and is not used for authentication. Patient
+  authentication does not send SMS messages or use OTP codes.
 - Receptionist, nurse, and admin accounts use email and password. Public staff
   registration is intentionally unavailable. Bootstrap the first admin
   locally with `BOOTSTRAP_ADMIN_NAME`, `BOOTSTRAP_ADMIN_EMAIL`, and
@@ -100,6 +96,5 @@ own account or the last active admin.
 - Apply the additive Phase 1 schema migration with
   `npm run db:migrate -- --name phase1_admin_fields`.
 
-Patient booking, live queue data, SMS gateway integration, leave workflows,
-and the document vault remain future phases. Patient OTP authentication is
-development-only until an SMS provider is configured.
+Patient booking, live queue data, SMS notifications, leave workflows, and the
+document vault remain future phases.
