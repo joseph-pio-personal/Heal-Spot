@@ -9,7 +9,7 @@
 .auth-heading .eyebrow { font-size: 9px; }
 .auth-heading h1, .workspace-card h1 { margin: 7px 0 6px; font: 800 28px var(--font-display); letter-spacing: -1px; }
 .auth-heading p, .workspace-card > p { margin: 0; color: #85868e; font-size: 12px; line-height: 1.65; }
-.role-switch { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-top: 24px; padding: 4px; border-radius: 10px; background: #f7f6f7; }
+.role-switch { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; margin-top: 24px; padding: 4px; border-radius: 10px; background: #f7f6f7; }
 .role-option { min-height: 39px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; border: 0; border-radius: 8px; background: transparent; color: #7d7e86; font-size: 11px; font-weight: 600; cursor: pointer; }
 .role-option-active { background: white; color: var(--red); box-shadow: 0 1px 5px #29202912; }
 .auth-mode { display: flex; gap: 21px; margin-top: 19px; border-bottom: 1px solid #efedef; }
@@ -40,10 +40,67 @@
 .workspace-card h1 { margin-top: 9px; font-size: 25px; }
 .workspace-icon { margin-bottom: 14px; }
 .role-banner { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 21px; padding: 11px; border-radius: 9px; background: #f0faf5; color: #428260; font-size: 11px; }
+.workspace-top-actions { display: flex; align-items: center; gap: 20px; }
 .auth-page > .home-link { width: fit-content; display: flex; margin: 18px auto 0; }
+.profile-page-content { width: min(100% - 36px, 880px); margin: 38px auto 60px; }
+.profile-page-heading { margin: 0 0 21px; }
+.profile-page-heading .eyebrow { color: var(--red); font-size: 10px; font-weight: 800; letter-spacing: 1px; }
+.profile-page-heading h1 { margin: 7px 0 5px; font: 800 29px var(--font-display); letter-spacing: -.8px; }
+.profile-page-heading p { margin: 0; color: #85868e; font-size: 12px; }
+.profile-section { margin-top: 15px; padding: 23px; border: 1px solid #efedef; border-radius: 15px; background: #fff; box-shadow: 0 12px 35px #35212a08; }
+.profile-identity { display: flex; align-items: center; gap: 16px; padding-bottom: 20px; border-bottom: 1px solid #f0eef0; }
+.profile-photo { width: 72px; height: 72px; display: grid; flex: 0 0 auto; place-items: center; overflow: hidden; border-radius: 50%; background: #fff0ef; color: var(--red); }
+.profile-photo img { width: 100%; height: 100%; object-fit: cover; }
+.profile-identity > div:nth-child(2) { min-width: 0; flex: 1; }
+.profile-identity .eyebrow { color: var(--red); font-size: 9px; font-weight: 800; letter-spacing: .8px; text-transform: uppercase; }
+.profile-identity h2 { margin: 4px 0 2px; font: 750 19px var(--font-display); }
+.profile-identity p { margin: 0; overflow-wrap: anywhere; color: #85868e; font-size: 11px; }
+.profile-upload-button { position: relative; min-height: 36px; display: inline-flex; flex: 0 0 auto; align-items: center; justify-content: center; gap: 7px; overflow: hidden; padding: 0 12px; border: 1px solid #f0d7d7; border-radius: 8px; background: #fff8f7; color: #bd3038; font-size: 10px; font-weight: 700; cursor: pointer; }
+.profile-upload-button:hover { border-color: #e78384; background: #fff0ef; }
+.profile-upload-button:focus-within { outline: 3px solid #df383f28; outline-offset: 2px; }
+.profile-upload-button input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+.profile-upload-button input:disabled { cursor: wait; }
+.profile-details-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 17px 25px; margin: 19px 0 0; }
+.profile-details-grid > div { min-width: 0; }
+.profile-details-grid dt { margin-bottom: 5px; color: #85868e; font-size: 10px; }
+.profile-details-grid dd { margin: 0; overflow-wrap: anywhere; color: #32333a; font-size: 12px; font-weight: 650; }
+.profile-section-heading { display: flex; align-items: center; gap: 11px; margin-bottom: 16px; }
+.profile-section-icon { width: 35px; height: 35px; display: grid; flex: 0 0 auto; place-items: center; border-radius: 10px; background: #fff0ef; color: var(--red); }
+.profile-section-heading h2 { margin: 0 0 3px; font: 750 14px var(--font-display); }
+.profile-section-heading p, .profile-form-hint { margin: 0; color: #85868e; font-size: 10px; line-height: 1.5; }
+.patient-profile-photo-list { display: grid; gap: 9px; }
+.patient-profile-photo-card { display: flex; align-items: center; gap: 13px; padding: 12px; border: 1px solid #f0eef0; border-radius: 11px; }
+.patient-profile-photo-card .profile-photo { width: 51px; height: 51px; }
+.patient-profile-photo-details { min-width: 0; flex: 1; display: grid; gap: 3px; }
+.patient-profile-photo-details strong { overflow: hidden; color: #32333a; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.patient-profile-photo-details span { color: #85868e; font-size: 10px; }
+.profile-password-form { max-width: 490px; gap: 11px; }
+.profile-password-form .auth-submit { min-height: 41px; }
+.profile-form-hint { margin-top: -1px; }
+.profile-schedule { margin-top: 20px; padding-top: 17px; border-top: 1px solid #f0eef0; }
+.profile-schedule h3 { display: flex; align-items: center; gap: 7px; margin: 0 0 11px; font: 700 12px var(--font-display); }
+.profile-schedule-row { display: grid; grid-template-columns: 1fr 1fr 1.2fr; gap: 10px; padding: 9px 0; border-top: 1px solid #f5f3f5; color: #686971; font-size: 10px; }
+.profile-schedule > p, .profile-loading { color: #85868e; font-size: 11px; }
+.profile-loading { padding: 20px; text-align: center; }
 
 @media (max-width: 680px) {
   .auth-topbar { width: calc(100% - 36px); height: 69px; }
   .auth-card, .workspace-card { margin-top: 31px; padding: 23px 20px; }
+  .workspace-top-actions { gap: 13px; }
+  .profile-page-content { margin-top: 27px; }
+  .profile-section { padding: 17px; }
+  .profile-details-grid { gap: 15px; }
+  .profile-schedule-row { grid-template-columns: .9fr 1fr; }
+  .profile-schedule-row span:last-child { grid-column: 1 / -1; }
+}
+
+@media (max-width: 440px) {
+  .role-option { gap: 4px; font-size: 9px; }
+  .profile-identity { flex-wrap: wrap; }
+  .profile-identity > div:nth-child(2) { min-width: calc(100% - 92px); }
+  .profile-identity > .profile-upload-button { margin-left: 88px; }
+  .patient-profile-photo-card { flex-wrap: wrap; }
+  .patient-profile-photo-card .profile-upload-button { margin-left: 64px; }
+  .profile-details-grid { grid-template-columns: 1fr; }
 }
 

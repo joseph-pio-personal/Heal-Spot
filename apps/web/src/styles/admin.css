@@ -95,7 +95,14 @@
 .admin-loading { display: flex; align-items: center; justify-content: center; gap: 9px; min-height: 180px; color: #85868e; font-size: 11px; }
 .admin-loading svg { color: var(--red); animation: admin-spin 1.2s linear infinite; }
 @keyframes admin-spin { to { transform: rotate(360deg); } }
+.admin-pagination { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; padding-top: 12px; border-top: 1px solid #f1f0f1; color: #85868e; font-size: 9px; }
+.admin-pagination-controls { display: flex; align-items: center; gap: 9px; }
+.admin-pagination-controls button { min-height: 31px; display: inline-flex; align-items: center; justify-content: center; gap: 3px; padding: 0 8px; border: 1px solid #eae8ea; border-radius: 7px; background: #fff; color: #5d5e66; font-size: 9px; font-weight: 700; cursor: pointer; }
+.admin-pagination-controls button:hover:not(:disabled) { border-color: #e7b5b4; color: var(--red); }
+.admin-pagination-controls button:disabled { opacity: .45; cursor: not-allowed; }
+.admin-pagination-controls > span { min-width: 62px; color: #73747c; text-align: center; }
 .admin-dashboard button:focus-visible, .admin-dashboard input:focus-visible, .admin-dashboard select:focus-visible, .admin-dashboard textarea:focus-visible { outline: 2px solid #df383f; outline-offset: 2px; }
+.admin-pagination button:focus-visible { outline: 2px solid #df383f; outline-offset: 2px; }
 
 @media (max-width: 900px) {
   .admin-section-grid, .admin-doctors-layout, .admin-staff-grid { grid-template-columns: 1fr; }
@@ -122,6 +129,8 @@
   .admin-staff-row select { grid-column: 2; grid-row: 2; }
   .admin-status-toggle { grid-column: 3; grid-row: 2; }
   .admin-password-reset { grid-column: 2 / -1; }
+  .admin-pagination { align-items: flex-start; flex-direction: column; }
+  .admin-pagination-controls { width: 100%; justify-content: space-between; }
 }
 
 @media (max-width: 380px) {

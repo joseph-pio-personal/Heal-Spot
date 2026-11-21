@@ -13,6 +13,8 @@ import { publicPatient, setSession } from "../../auth/session.js";
 import { authRateLimit } from "../../auth/rate-limit.js";
 import { ApiError } from "../../lib/api-error.js";
 import { asyncRoute } from "../../lib/async-route.js";
+import { authenticate, requireRole } from "../../middleware/authenticate.js";
+import { changeAccountPassword } from "../../services/account-password.js";
 
 const router = Router();
 const DUMMY_PASSWORD_HASH = await bcrypt.hash("heal-spot-nonexistent-account", 12);
@@ -52,7 +54,7 @@ router.post(
       include: { profiles: { orderBy: { createdAt: "asc" }, take: 1 } },
     });
 
-    setSession(response, account.id, "PATIENT");
+    setSession(response, account.id, "PATIENT", account.sessionVersion);
     response.status(201).json({ user: publicPatient(account) });
   }),
 );
@@ -79,8 +81,25 @@ router.post(
       throw new ApiError(401, "Email, username, or password is incorrect.");
     }
 
-    setSession(response, account.id, "PATIENT");
+    setSession(response, account.id, "PATIENT", account.sessionVersion);
     response.json({ user: publicPatient(account) });
+  }),
+);
+
+router.post(
+  "/change-password",
+  authRateLimit(5, 15 * 60 * 1000),
+  authenticate,
+  requireRole("PATIENT"),
+  asyncRoute(async (request, response) => {
+    const updated = await changeAccountPassword(prisma, {
+      role: "PATIENT",
+      accountId: request.currentUser.id,
+      currentPassword: request.body?.currentPassword,
+      newPassword: request.body?.newPassword,
+    });
+    setSession(response, updated.id, "PATIENT", updated.sessionVersion);
+    response.json({ message: "Password changed. Other patient sessions have been signed out." });
   }),
 );
 

@@ -4,6 +4,11 @@ import express from "express";
 import helmet from "helmet";
 import { authRouter } from "./routes/auth/index.js";
 import { catalogRouter } from "./routes/catalog/index.js";
+import { bookingsRouter } from "./routes/bookings.js";
+import { patientProfilesRouter } from "./routes/patient/profiles.js";
+import { profileRouter } from "./routes/profile.js";
+import { staffQueueRouter } from "./routes/staff/queue.js";
+import { doctorDashboardRouter } from "./routes/doctor/dashboard.js";
 import { ApiError } from "./lib/api-error.js";
 import { prisma } from "./db.js";
 
@@ -36,6 +41,11 @@ app.get("/api/health", (_request, response) => {
 });
 
 app.use("/api/auth", authRouter);
+app.use("/api/profile", profileRouter);
+app.use("/api/patient/profiles", patientProfilesRouter);
+app.use("/api/bookings", bookingsRouter);
+app.use("/api/staff/queue", staffQueueRouter);
+app.use("/api/doctor", doctorDashboardRouter);
 app.use("/api", catalogRouter);
 
 app.get("/api/health/ready", async (_request, response) => {
@@ -61,6 +71,11 @@ app.use((error, _request, response, _next) => {
 
   if (error?.type === "entity.parse.failed") {
     response.status(400).json({ error: "Request body must be valid JSON." });
+    return;
+  }
+
+  if (error?.type === "entity.too.large") {
+    response.status(413).json({ error: "Request body exceeds the allowed size." });
     return;
   }
 

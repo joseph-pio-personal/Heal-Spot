@@ -1,3 +1,4 @@
+import bcrypt from "bcryptjs";
 import { Router } from "express";
 import { prisma } from "../../db.js";
 import { authenticate, requireRole } from "../../middleware/authenticate.js";
@@ -15,8 +16,14 @@ import {
   toDatabaseSchedule,
 } from "../../catalog/validation.js";
 import { doctorInclude, doctorResponse } from "../../catalog/doctor-response.js";
+import { normalizeEmail, passwordFromRequest } from "../../auth/validation.js";
 
 const router = Router();
+const adminDoctorResponse = (doctor) => ({
+  ...doctorResponse(doctor),
+  email: doctor.email,
+  hasLogin: Boolean(doctor.passwordHash),
+});
 
 router.get(
   "/doctors",
@@ -47,7 +54,7 @@ router.get(
       include: doctorInclude(),
       orderBy: [{ department: { name: "asc" } }, { name: "asc" }],
     });
-    response.json({ doctors: doctors.map(doctorResponse) });
+    response.json({ doctors: doctors.map(adminDoctorResponse) });
   }),
 );
 
@@ -72,6 +79,8 @@ router.post(
     const body = request.body ?? {};
     const departmentId = normalizeId(body.departmentId, "department ID");
     const name = requiredText(body.name, "Doctor name", 160);
+    const email = normalizeEmail(body.email);
+    const password = passwordFromRequest(body.password);
     const consultationFee = parseFee(body.consultationFee);
     const schedules = parseSchedules(body.schedules);
     const experienceYears = parseExperience(body.experienceYears);
@@ -89,6 +98,8 @@ router.post(
         data: {
           departmentId,
           name,
+          email,
+          passwordHash: await bcrypt.hash(password, 12),
           photoUrl: parsePhotoUrl(body.photoUrl),
           qualification: optionalText(body.qualification, "Qualification", 200),
           specialization: optionalText(body.specialization, "Specialization", 200),
@@ -110,7 +121,7 @@ router.post(
       });
       return created;
     });
-    response.status(201).json({ doctor: doctorResponse(doctor) });
+    response.status(201).json({ doctor: adminDoctorResponse(doctor) });
   }),
 );
 
@@ -124,6 +135,12 @@ router.patch(
     const data = {};
     if (Object.prototype.hasOwnProperty.call(body, "name")) {
       data.name = requiredText(body.name, "Doctor name", 160);
+    }
+    if (Object.prototype.hasOwnProperty.call(body, "email")) {
+      data.email = normalizeEmail(body.email);
+    }
+    if (typeof body.password === "string" && body.password.length > 0) {
+      data.passwordHash = await bcrypt.hash(passwordFromRequest(body.password), 12);
     }
     if (Object.prototype.hasOwnProperty.call(body, "departmentId")) {
       data.departmentId = normalizeId(body.departmentId, "department ID");
@@ -159,6 +176,15 @@ router.patch(
         include: { department: true },
       });
       if (!existing) throw new ApiError(404, "Doctor not found.");
+      const credentialUpdated = (
+        data.email !== undefined && data.email !== existing.email
+      ) || data.passwordHash !== undefined;
+      const updateData = {
+        ...data,
+        ...(credentialUpdated || (data.status !== undefined && data.status !== existing.status)
+          ? { sessionVersion: { increment: 1 } }
+          : {}),
+      };
       const nextDepartmentId = data.departmentId ?? existing.departmentId;
       const nextStatus = data.status ?? existing.status;
       if (nextStatus === "ACTIVE" && schedules && !schedules.some((schedule) => schedule.isActive)) {
@@ -177,7 +203,7 @@ router.patch(
       const updated = await transaction.doctor.update({
         where: { id },
         data: {
-          ...data,
+          ...updateData,
           ...(schedules ? {
             schedules: {
               deleteMany: {},
@@ -193,12 +219,15 @@ router.patch(
           action: "DOCTOR_UPDATED",
           entityType: "Doctor",
           entityId: id,
-          details: { ...data, ...(schedules ? { schedules } : {}) },
+          details: {
+            ...Object.fromEntries(Object.entries(updateData).filter(([key]) => key !== "passwordHash" && key !== "sessionVersion")),
+            ...(schedules ? { schedules } : {}),
+          },
         },
       });
       return updated;
     });
-    response.json({ doctor: doctorResponse(doctor) });
+    response.json({ doctor: adminDoctorResponse(doctor) });
   }),
 );
 

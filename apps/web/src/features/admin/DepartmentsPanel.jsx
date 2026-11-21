@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { Activity, Plus, Stethoscope } from "lucide-react";
 import { apiRequest } from "../../api/client.js";
+import Pagination, { usePagination } from "./Pagination.jsx";
 
 function DepartmentsPanel({ departments, busy, runAction }) {
   const [form, setForm] = useState({ name: "", description: "" });
   const [editingId, setEditingId] = useState(null);
+  const { page, pageCount, pageRecords, setPage } = usePagination(departments);
 
   const submitDepartment = (event) => {
     event.preventDefault();
@@ -89,7 +91,7 @@ function DepartmentsPanel({ departments, busy, runAction }) {
           <p className="admin-empty">No departments yet. Add the first one to get started.</p>
         ) : (
           <div className="admin-entity-list">
-            {departments.map((department) => (
+            {pageRecords.map((department) => (
               <article className="admin-entity-row" key={department.id}>
                 <div className="admin-entity-symbol"><Stethoscope size={17} /></div>
                 <div className="admin-entity-copy">
@@ -107,6 +109,13 @@ function DepartmentsPanel({ departments, busy, runAction }) {
             ))}
           </div>
         )}
+        <Pagination
+          onPageChange={setPage}
+          page={page}
+          pageCount={pageCount}
+          recordLabel="department"
+          totalRecords={departments.length}
+        />
       </div>
     </div>
   );

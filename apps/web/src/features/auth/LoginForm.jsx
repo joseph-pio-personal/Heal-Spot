@@ -31,6 +31,7 @@ function LoginForm({ onAuthenticated, onHome }) {
 
   const switchRole = (nextRole) => {
     setRole(nextRole);
+    if (nextRole !== "PATIENT") setMode("login");
     setError("");
   };
 
@@ -70,12 +71,13 @@ function LoginForm({ onAuthenticated, onHome }) {
     }
   };
 
-  const handleStaffSubmit = async (event) => {
+  const handleWorkforceSubmit = async (event) => {
     event.preventDefault();
     setError("");
     setBusy(true);
     try {
-      const { user } = await apiRequest("/api/auth/staff/login", {
+      const loginPath = role === "DOCTOR" ? "/api/auth/doctor/login" : "/api/auth/staff/login";
+      const { user } = await apiRequest(loginPath, {
         method: "POST",
         body: JSON.stringify({ email: form.email, password: form.password }),
       });
@@ -115,12 +117,20 @@ function LoginForm({ onAuthenticated, onHome }) {
             <UserRound size={16} /> Patient
           </button>
           <button
+            aria-pressed={role === "DOCTOR"}
+            className={role === "DOCTOR" ? "role-option role-option-active" : "role-option"}
+            onClick={() => switchRole("DOCTOR")}
+            type="button"
+          >
+            <Stethoscope size={16} /> Doctor
+          </button>
+          <button
             aria-pressed={role === "STAFF"}
             className={role === "STAFF" ? "role-option role-option-active" : "role-option"}
             onClick={() => switchRole("STAFF")}
             type="button"
           >
-            <Stethoscope size={16} /> Hospital staff
+            <ShieldCheck size={16} /> Hospital staff
           </button>
         </div>
 
@@ -247,8 +257,12 @@ function LoginForm({ onAuthenticated, onHome }) {
             <div className="auth-footnote"><ShieldCheck size={15} /> Mobile is optional and never used to sign in.</div>
           </>
         ) : (
-          <form className="auth-form staff-login-form" onSubmit={handleStaffSubmit}>
-            <p className="staff-login-note">Staff accounts are created by your Heal Spot administrator.</p>
+          <form className="auth-form staff-login-form" onSubmit={handleWorkforceSubmit}>
+            <p className="staff-login-note">
+              {role === "DOCTOR"
+                ? "Doctor accounts are created by your Heal Spot administrator."
+                : "Staff accounts are created by your Heal Spot administrator."}
+            </p>
             <label>
               Work email
               <input
@@ -275,7 +289,8 @@ function LoginForm({ onAuthenticated, onHome }) {
             </label>
             {error && <p className="form-message form-error" role="alert">{error}</p>}
             <button className="button auth-submit" disabled={busy} type="submit">
-              {busy ? "Signing in..." : "Sign in to staff panel"} {!busy && <ArrowRight size={16} />}
+              {busy ? "Signing in..." : role === "DOCTOR" ? "Sign in as doctor" : "Sign in to staff panel"}
+              {!busy && <ArrowRight size={16} />}
             </button>
           </form>
         )}

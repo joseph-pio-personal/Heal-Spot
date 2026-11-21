@@ -1,4 +1,13 @@
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4000";
+const currentHostname = window.location.hostname;
+const apiUrl = new URL(
+  import.meta.env.VITE_API_BASE_URL
+    || `${window.location.protocol}//${currentHostname}:4000`,
+);
+const localApiHostnames = new Set(["localhost", "127.0.0.1", "[::1]"]);
+if (localApiHostnames.has(apiUrl.hostname) && apiUrl.hostname !== currentHostname) {
+  apiUrl.hostname = currentHostname;
+}
+export const apiBaseUrl = apiUrl.origin;
 
 export async function apiRequest(path, options = {}) {
   const response = await fetch(`${apiBaseUrl}${path}`, {

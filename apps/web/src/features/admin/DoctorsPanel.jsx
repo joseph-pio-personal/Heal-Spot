@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { CircleDollarSign, Clock3, Plus, Stethoscope, UsersRound } from "lucide-react";
 import { apiRequest } from "../../api/client.js";
+import Pagination, { usePagination } from "./Pagination.jsx";
 
 const WEEKDAYS = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"];
 const INITIAL_SCHEDULE = { weekday: "MONDAY", startTime: "09:00", endTime: "13:00", maxTokens: 30, isActive: true };
@@ -9,6 +10,9 @@ function emptyDoctor(departmentId = "") {
   return {
     departmentId,
     name: "",
+    email: "",
+    password: "",
+    hasLogin: false,
     photoUrl: "",
     qualification: "",
     specialization: "",
@@ -23,6 +27,7 @@ function DoctorsPanel({ departments, doctors, busy, runAction }) {
   const activeDepartments = departments.filter((department) => department.status === "ACTIVE");
   const [form, setForm] = useState(() => emptyDoctor(activeDepartments[0]?.id ?? ""));
   const [editingId, setEditingId] = useState(null);
+  const { page, pageCount, pageRecords, setPage } = usePagination(doctors);
 
   const updateSchedule = (scheduleIndex, changes) => {
     setForm((current) => ({
@@ -41,6 +46,7 @@ function DoctorsPanel({ departments, doctors, busy, runAction }) {
         method: editingId ? "PATCH" : "POST",
         body: JSON.stringify({
           ...form,
+          ...(editingId && !form.password ? { password: undefined } : {}),
           experienceYears: form.experienceYears === "" ? null : Number(form.experienceYears),
           consultationFee: String(form.consultationFee),
           schedules: form.schedules.map((schedule) => ({
@@ -63,6 +69,9 @@ function DoctorsPanel({ departments, doctors, busy, runAction }) {
     setForm({
       departmentId: doctor.departmentId,
       name: doctor.name,
+      email: doctor.email ?? "",
+      password: "",
+      hasLogin: doctor.hasLogin,
       photoUrl: doctor.photoUrl ?? "",
       qualification: doctor.qualification ?? "",
       specialization: doctor.specialization ?? "",
@@ -99,13 +108,30 @@ function DoctorsPanel({ departments, doctors, busy, runAction }) {
           <span className="admin-panel-icon"><Stethoscope size={17} /></span>
           <div>
             <h3>{editingId ? "Edit doctor profile" : "Add a doctor"}</h3>
-            <p>Set consultation fees and weekly clinic sessions.</p>
+            <p>Set doctor sign-in details, consultation fees, and clinic sessions.</p>
           </div>
         </div>
         <div className="admin-two-fields">
           <label>
             Doctor name
             <input maxLength={160} onChange={(event) => setForm({ ...form, name: event.target.value })} required value={form.name} />
+          </label>
+          <label>
+            Work email
+            <input autoComplete="email" maxLength={254} onChange={(event) => setForm({ ...form, email: event.target.value })} required type="email" value={form.email} />
+          </label>
+          <label>
+            {editingId && form.hasLogin ? "Set a new password" : "Temporary password"}
+            <input
+              autoComplete="new-password"
+              maxLength={72}
+              minLength={12}
+              onChange={(event) => setForm({ ...form, password: event.target.value })}
+              placeholder={editingId && form.hasLogin ? "Leave blank to keep current password" : "At least 12 characters"}
+              required={!editingId || !form.hasLogin}
+              type="password"
+              value={form.password}
+            />
           </label>
           <label>
             Department
@@ -204,7 +230,7 @@ function DoctorsPanel({ departments, doctors, busy, runAction }) {
           <p className="admin-empty">No doctors in the directory yet.</p>
         ) : (
           <div className="admin-doctor-list">
-            {doctors.map((doctor) => (
+            {pageRecords.map((doctor) => (
               <article className="admin-doctor-row" key={doctor.id}>
                 <div className="admin-doctor-avatar">
                   {doctor.photoUrl ? <img alt="" src={doctor.photoUrl} /> : <Stethoscope size={18} />}
@@ -216,6 +242,7 @@ function DoctorsPanel({ departments, doctors, busy, runAction }) {
                       {doctor.status === "ACTIVE" ? "Active" : "Inactive"}
                     </span>
                   </div>
+                  <span>{doctor.email || "Doctor sign-in not configured"}</span>
                   <span>{doctor.department.name} · {doctor.specialization || doctor.qualification || "Doctor"}</span>
                   <div className="admin-doctor-meta">
                     <span><CircleDollarSign size={13} /> ₹{doctor.consultationFee}</span>
@@ -237,6 +264,13 @@ function DoctorsPanel({ departments, doctors, busy, runAction }) {
             ))}
           </div>
         )}
+        <Pagination
+          onPageChange={setPage}
+          page={page}
+          pageCount={pageCount}
+          recordLabel="doctor"
+          totalRecords={doctors.length}
+        />
       </div>
     </div>
   );

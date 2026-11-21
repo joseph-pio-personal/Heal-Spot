@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Plus, ShieldCheck, UsersRound } from "lucide-react";
 import { apiRequest } from "../../api/client.js";
+import Pagination, { usePagination } from "./Pagination.jsx";
 
 const STAFF_ROLES = ["ADMIN", "RECEPTIONIST", "NURSE"];
 
@@ -11,6 +12,7 @@ function roleLabel(role) {
 function StaffPanel({ staff, currentUser, busy, runAction }) {
   const [form, setForm] = useState({ name: "", email: "", password: "", role: "RECEPTIONIST" });
   const [resetPasswords, setResetPasswords] = useState({});
+  const { page, pageCount, pageRecords, setPage } = usePagination(staff);
 
   const createStaff = (event) => {
     event.preventDefault();
@@ -88,7 +90,7 @@ function StaffPanel({ staff, currentUser, busy, runAction }) {
           <p className="admin-empty">No staff accounts yet.</p>
         ) : (
           <div className="admin-staff-list">
-            {staff.map((member) => (
+            {pageRecords.map((member) => (
               <article className="admin-staff-row" key={member.id}>
                 <div className="admin-staff-avatar">
                   {member.name.split(/\s+/).map((part) => part[0]).slice(0, 2).join("").toUpperCase()}
@@ -135,6 +137,13 @@ function StaffPanel({ staff, currentUser, busy, runAction }) {
             ))}
           </div>
         )}
+        <Pagination
+          onPageChange={setPage}
+          page={page}
+          pageCount={pageCount}
+          recordLabel="staff"
+          totalRecords={staff.length}
+        />
       </div>
     </div>
   );

@@ -2,7 +2,7 @@ import jwt from "jsonwebtoken";
 import { prisma } from "../db.js";
 import { ApiError } from "../lib/api-error.js";
 import { asyncRoute } from "../lib/async-route.js";
-import { publicPatient, publicStaff } from "../auth/session.js";
+import { publicDoctor, publicPatient, publicStaff } from "../auth/session.js";
 import { STAFF_ROLES } from "../auth/validation.js";
 
 const SESSION_COOKIE = "heal_spot_session";
@@ -38,11 +38,28 @@ export const authenticate = asyncRoute(async (request, response, next) => {
       where: { id: claims.sub },
       include: { profiles: { orderBy: { createdAt: "asc" }, take: 1 } },
     });
-    if (!account || account.status !== "ACTIVE") {
+    if (
+      !account
+      || account.status !== "ACTIVE"
+      || claims.sessionVersion !== account.sessionVersion
+    ) {
       clearInvalidSession(response);
       throw new ApiError(401, "Your account is unavailable. Please sign in again.");
     }
     request.currentUser = publicPatient(account);
+  } else if (claims.role === "DOCTOR") {
+    const doctor = await prisma.doctor.findUnique({ where: { id: claims.sub } });
+    if (
+      !doctor
+      || doctor.status !== "ACTIVE"
+      || !doctor.email
+      || !doctor.passwordHash
+      || claims.sessionVersion !== doctor.sessionVersion
+    ) {
+      clearInvalidSession(response);
+      throw new ApiError(401, "Your account is unavailable. Please sign in again.");
+    }
+    request.currentUser = publicDoctor(doctor);
   } else {
     const staff = await prisma.staffUser.findUnique({ where: { id: claims.sub } });
     if (

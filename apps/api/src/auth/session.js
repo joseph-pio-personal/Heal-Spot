@@ -50,3 +50,14 @@ export function publicStaff(staff) {
     email: staff.email,
   };
 }
+
+export function publicDoctor(doctor) {
+  return {
+    id: doctor.id,
+    role: "DOCTOR",
+    name: doctor.name,
+    email: doctor.email,
+    departmentId: doctor.departmentId,
+    status: doctor.status,
+  };
+}

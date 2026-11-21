@@ -3,12 +3,14 @@ import { clearSession } from "../../auth/session.js";
 import { authenticate } from "../../middleware/authenticate.js";
 import { patientAuthRouter } from "./patient.js";
 import { staffAuthRouter } from "./staff.js";
+import { doctorAuthRouter } from "./doctor.js";
 import { staffAdminRouter } from "../admin/staff.js";
 
 const router = Router();
 
 router.use("/patient", patientAuthRouter);
 router.use("/staff", staffAuthRouter);
+router.use("/doctor", doctorAuthRouter);
 router.use("/admin/staff", staffAdminRouter);
 
 router.get(

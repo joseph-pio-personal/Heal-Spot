@@ -51,6 +51,7 @@ enum LeaveType {
   HALF_DAY
   CUSTOM
 }
+
 enum LeaveStatus {
   ACTIVE
   CANCELLED
@@ -124,15 +125,16 @@ enum OutboxStatus {
 }
 
 model PatientAccount {
-  id           String        @id @default(uuid()) @db.Uuid
-  username     String?       @unique @db.VarChar(32)
-  email        String?       @unique @db.VarChar(254)
-  passwordHash String?       @db.VarChar(255)
-  mobile       String?       @db.VarChar(20)
-  verifiedAt   DateTime?     @db.Timestamptz(3)
-  status       AccountStatus @default(ACTIVE)
-  createdAt    DateTime      @default(now()) @db.Timestamptz(3)
-  updatedAt    DateTime      @updatedAt @db.Timestamptz(3)
+  id             String        @id @default(uuid()) @db.Uuid
+  username       String?       @unique @db.VarChar(32)
+  email          String?       @unique @db.VarChar(254)
+  passwordHash   String?       @db.VarChar(255)
+  mobile         String?       @db.VarChar(20)
+  sessionVersion Int           @default(0)
+  verifiedAt     DateTime?     @db.Timestamptz(3)
+  status         AccountStatus @default(ACTIVE)
+  createdAt      DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime      @updatedAt @db.Timestamptz(3)
 
   profiles      PatientProfile[]
   bookings      Booking[]        @relation("BookingBookedByAccount")
@@ -156,17 +158,18 @@ model PatientDevice {
 }
 
 model PatientProfile {
-  id           String    @id @default(uuid()) @db.Uuid
-  accountId    String?   @db.Uuid
-  name         String    @db.VarChar(160)
-  dateOfBirth  DateTime? @db.Date
-  gender       Gender?
-  mobile       String?   @db.VarChar(20)
-  address      String?   @db.VarChar(500)
-  bloodGroup   String?   @db.VarChar(5)
-  relationship String?   @db.VarChar(40)
-  createdAt    DateTime  @default(now()) @db.Timestamptz(3)
-  updatedAt    DateTime  @updatedAt @db.Timestamptz(3)
+  id              String    @id @default(uuid()) @db.Uuid
+  accountId       String?   @db.Uuid
+  name            String    @db.VarChar(160)
+  dateOfBirth     DateTime? @db.Date
+  gender          Gender?
+  mobile          String?   @db.VarChar(20)
+  photoStorageKey String?   @db.VarChar(500)
+  address         String?   @db.VarChar(500)
+  bloodGroup      String?   @db.VarChar(5)
+  relationship    String?   @db.VarChar(40)
+  createdAt       DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime  @updatedAt @db.Timestamptz(3)
 
   account  PatientAccount? @relation(fields: [accountId], references: [id], onDelete: SetNull)
   bookings Booking[]
@@ -189,15 +192,16 @@ model OtpChallenge {
 }
 
 model StaffUser {
-  id           String    @id @default(uuid()) @db.Uuid
-  name         String    @db.VarChar(160)
-  email        String    @unique @db.VarChar(254)
-  passwordHash String    @db.VarChar(255)
-  role         StaffRole
-  isActive     Boolean   @default(true)
-  sessionVersion Int     @default(0)
-  createdAt    DateTime  @default(now()) @db.Timestamptz(3)
-  updatedAt    DateTime  @updatedAt @db.Timestamptz(3)
+  id              String    @id @default(uuid()) @db.Uuid
+  name            String    @db.VarChar(160)
+  email           String    @unique @db.VarChar(254)
+  passwordHash    String    @db.VarChar(255)
+  photoStorageKey String?   @db.VarChar(500)
+  role            StaffRole
+  isActive        Boolean   @default(true)
+  sessionVersion  Int       @default(0)
+  createdAt       DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime  @updatedAt @db.Timestamptz(3)
 
   leavesCreated     DoctorLeave[]     @relation("LeaveCreatedBy")
   bookingsCreated   Booking[]         @relation("BookingCreatedByStaff")
@@ -221,6 +225,9 @@ model Doctor {
   id              String        @id @default(uuid()) @db.Uuid
   departmentId    String        @db.Uuid
   name            String        @db.VarChar(160)
+  email           String?       @unique @db.VarChar(254)
+  passwordHash    String?       @db.VarChar(255)
+  sessionVersion  Int           @default(0)
   photoStorageKey String?       @db.VarChar(500)
   photoUrl        String?       @db.VarChar(1000)
   qualification   String?       @db.VarChar(200)
