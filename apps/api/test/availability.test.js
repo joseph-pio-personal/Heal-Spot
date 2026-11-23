@@ -15,7 +15,7 @@ function nextMonday() {
   throw new Error("Could not find Monday within the booking window.");
 }
 
-function availabilityDatabase({ sessions, doctorStatus = "NOT_YET_ARRIVED", bookings = [] }) {
+function availabilityDatabase({ sessions, doctorStatus = "NOT_YET_ARRIVED", bookings = [], leaves = [] }) {
   return {
     hospitalSettings: {
       findUnique: async () => ({ timezone: TIME_ZONE }),
@@ -43,6 +43,9 @@ function availabilityDatabase({ sessions, doctorStatus = "NOT_YET_ARRIVED", book
     },
     doctorDay: {
       findMany: async () => [{ doctorId: DOCTOR_ID, status: doctorStatus }],
+    },
+    doctorLeave: {
+      findMany: async () => leaves,
     },
     booking: {
       findMany: async () => bookings,
@@ -103,6 +106,20 @@ test("patient availability explains missing sessions, exhausted tokens, and doct
     { dateValue, search: "" },
   );
   assert.equal(onLeave.doctors[0].availabilityReason, "DOCTOR_ON_LEAVE");
+});
+
+test("patient availability applies active doctor leave even when the daily status is Present", async () => {
+  const result = await listAvailability(
+    availabilityDatabase({
+      sessions: [{ startTime: "09:00", endTime: "16:00", maxTokens: 10 }],
+      doctorStatus: "PRESENT",
+      leaves: [{ doctorId: DOCTOR_ID }],
+    }),
+    { dateValue: nextMonday(), search: "" },
+  );
+
+  assert.equal(result.doctors[0].doctorStatus, "ON_LEAVE");
+  assert.equal(result.doctors[0].availabilityReason, "DOCTOR_ON_LEAVE");
 });
 
 test("patient availability closes a same-day clinic session after its end time", async () => {

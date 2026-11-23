@@ -132,6 +132,9 @@ model PatientAccount {
   mobile         String?       @db.VarChar(20)
   sessionVersion Int           @default(0)
   verifiedAt     DateTime?     @db.Timestamptz(3)
+  verificationOtpHash      String?   @db.VarChar(64)
+  verificationOtpExpiresAt DateTime? @db.Timestamptz(3)
+  verificationOtpAttempts Int       @default(0)
   status         AccountStatus @default(ACTIVE)
   createdAt      DateTime      @default(now()) @db.Timestamptz(3)
   updatedAt      DateTime      @updatedAt @db.Timestamptz(3)
@@ -410,6 +413,8 @@ model OutboxEvent {
   payload     Json
   status      OutboxStatus @default(PENDING)
   attempts    Int          @default(0)
+  dedupeKey   String?      @unique @db.VarChar(300)
+  lastError   String?      @db.VarChar(500)
   availableAt DateTime     @default(now()) @db.Timestamptz(3)
   processedAt DateTime?    @db.Timestamptz(3)
   createdAt   DateTime     @default(now()) @db.Timestamptz(3)

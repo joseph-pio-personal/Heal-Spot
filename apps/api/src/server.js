@@ -18,6 +18,8 @@ if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
 
 const { app } = await import("./app.js");
 const { prisma } = await import("./db.js");
+const { startEmailNotifications } = await import("./notifications/scheduler.js");
+const stopEmailNotifications = startEmailNotifications(prisma);
 const port = Number(process.env.PORT ?? 4000);
 const server = app.listen(port, () => {
   console.log(`Heal Spot API listening on http://localhost:${port}`);
@@ -25,6 +27,7 @@ const server = app.listen(port, () => {
 
 for (const signal of ["SIGINT", "SIGTERM"]) {
   process.on(signal, () => {
+    stopEmailNotifications();
     server.close(async () => {
       await prisma.$disconnect();
       process.exit(0);

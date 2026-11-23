@@ -3,6 +3,7 @@ import {
   assertWithinBookingWindow,
   getHospitalTimeZone,
   hospitalLocalDate,
+  hospitalLocalDateTimeToUtc,
   hospitalLocalTime,
   parseBookingDate,
   weekdayForDate,
@@ -17,7 +18,10 @@ function isSessionAvailable(sessions, date, timeZone, now) {
 
 export async function listAvailability(database, { dateValue, departmentId, search }) {
   const date = parseBookingDate(dateValue);
+  const nextDate = addCalendarDays(dateValue, 1);
   const timeZone = await getHospitalTimeZone(database);
+  const dayStart = hospitalLocalDateTimeToUtc(dateValue, "00:00", timeZone);
+  const dayEnd = hospitalLocalDateTimeToUtc(nextDate, "00:00", timeZone);
   assertWithinBookingWindow(dateValue, timeZone);
   const weekday = weekdayForDate(dateValue);
   const now = new Date();
@@ -55,7 +59,7 @@ export async function listAvailability(database, { dateValue, departmentId, sear
     };
   }
 
-  const [doctorDays, existingBookings] = await Promise.all([
+  const [doctorDays, existingBookings, activeLeaves] = await Promise.all([
     database.doctorDay.findMany({
       where: { doctorId: { in: doctorIds }, date },
       select: { doctorId: true, status: true },
@@ -64,8 +68,18 @@ export async function listAvailability(database, { dateValue, departmentId, sear
       where: { doctorId: { in: doctorIds }, date },
       select: { doctorId: true, tokenNumber: true, status: true },
     }),
+    database.doctorLeave.findMany({
+      where: {
+        doctorId: { in: doctorIds },
+        status: "ACTIVE",
+        startsAt: { lt: dayEnd },
+        endsAt: { gt: dayStart },
+      },
+      select: { doctorId: true },
+    }),
   ]);
   const statusByDoctor = new Map(doctorDays.map((doctorDay) => [doctorDay.doctorId, doctorDay.status]));
+  for (const leave of activeLeaves) statusByDoctor.set(leave.doctorId, "ON_LEAVE");
   const lastTokenByDoctor = new Map();
   const usedCapacityByDoctor = new Map();
   for (const booking of existingBookings) {

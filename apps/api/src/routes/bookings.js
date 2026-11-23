@@ -83,6 +83,7 @@ router.post(
         date: dateString(booking.date),
         feeAtBooking: booking.feeAtBooking.toFixed(2),
       },
+      emailStatus: request.currentUser.email ? "QUEUED" : "NO_RECIPIENT",
     });
   }),
 );
@@ -153,6 +154,7 @@ router.delete(
         date: dateString(booking.date),
         feeAtBooking: booking.feeAtBooking.toFixed(2),
       },
+      emailStatus: request.currentUser.email ? "QUEUED" : "NO_RECIPIENT",
     });
   }),
 );

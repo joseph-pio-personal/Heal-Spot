@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Activity, BellRing, Check, Clock3, RefreshCw, SkipForward, Stethoscope, Users } from "lucide-react";
-import { apiRequest } from "../../api/client.js";
+import { apiBaseUrl, apiRequest } from "../../api/client.js";
 
 const DOCTOR_STATUSES = ["NOT_YET_ARRIVED", "PRESENT", "ON_BREAK", "ON_LEAVE"];
 
@@ -20,6 +20,7 @@ function statusLabel(status) {
 }
 
 function StaffQueueDashboard() {
+  const date = hospitalDateToday();
   const [doctors, setDoctors] = useState([]);
   const [doctorId, setDoctorId] = useState("");
   const [queue, setQueue] = useState({ doctorDay: { status: "NOT_YET_ARRIVED", currentTokenNumber: 0 }, bookings: [] });
@@ -28,7 +29,7 @@ function StaffQueueDashboard() {
   const [refreshVersion, setRefreshVersion] = useState(0);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
-  const date = hospitalDateToday();
+  const [leaveForm, setLeaveForm] = useState({ startsOn: date, endsOn: date, reason: "" });
 
   useEffect(() => {
     let active = true;
@@ -85,6 +86,49 @@ function StaffQueueDashboard() {
       setError(requestError.message);
     } finally {
       setBusy(false);
+    }
+  };
+
+  const recordLeave = async (event) => {
+    event.preventDefault();
+    if (!doctorId) return;
+    setBusy(true);
+    setError("");
+    setNotice("");
+    try {
+      const { cancelledBookings, emailsQueued } = await apiRequest("/api/staff/leaves", {
+        method: "POST",
+        body: JSON.stringify({ doctorId, ...leaveForm }),
+      });
+      setNotice(`Doctor leave recorded. ${cancelledBookings} booking(s) cancelled; ${emailsQueued} patient email(s) queued.`);
+      setRefreshVersion((current) => current + 1);
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const uploadPrescription = async (booking, file) => {
+    setBusy(booking.id);
+    setError("");
+    setNotice("");
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/staff/bookings/${booking.id}/prescription`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error ?? "Unable to upload the prescription.");
+      setNotice(result.emailStatus === "QUEUED"
+        ? `Prescription for token ${booking.tokenNumber} uploaded; the patient email is queued.`
+        : `Prescription for token ${booking.tokenNumber} uploaded, but no patient account email is available.`);
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setBusy("");
     }
   };
 
@@ -219,6 +263,42 @@ function StaffQueueDashboard() {
                   </div>
                 )}
               </div>
+              <form className="staff-leave-form" onSubmit={recordLeave}>
+                <strong>Record doctor leave</strong>
+                <div className="staff-leave-date-fields">
+                  <label>
+                    From
+                    <input
+                      min={date}
+                      onChange={(event) => setLeaveForm((current) => ({ ...current, startsOn: event.target.value }))}
+                      required
+                      type="date"
+                      value={leaveForm.startsOn}
+                    />
+                  </label>
+                  <label>
+                    Through
+                    <input
+                      min={leaveForm.startsOn || date}
+                      onChange={(event) => setLeaveForm((current) => ({ ...current, endsOn: event.target.value }))}
+                      required
+                      type="date"
+                      value={leaveForm.endsOn}
+                    />
+                  </label>
+                </div>
+                <label>
+                  Reason (optional)
+                  <input
+                    maxLength={500}
+                    onChange={(event) => setLeaveForm((current) => ({ ...current, reason: event.target.value }))}
+                    value={leaveForm.reason}
+                  />
+                </label>
+                <button className="admin-secondary-button" disabled={busy} type="submit">
+                  Record leave and notify patients
+                </button>
+              </form>
             </>
           )}
         </section>
@@ -268,6 +348,22 @@ function StaffQueueDashboard() {
                 <span className={`operations-status operations-status-${booking.status.toLowerCase()}`}>
                   {statusLabel(booking.status)}
                 </span>
+                {booking.status === "COMPLETED" && (
+                  <label className="staff-prescription-upload">
+                    {busy === booking.id ? "Uploading..." : "Upload prescription"}
+                    <input
+                      accept="application/pdf,image/jpeg,image/png"
+                      aria-label={`Upload prescription for token ${booking.tokenNumber}`}
+                      disabled={Boolean(busy)}
+                      onChange={(event) => {
+                        const [file] = event.target.files ?? [];
+                        if (file) uploadPrescription(booking, file);
+                        event.target.value = "";
+                      }}
+                      type="file"
+                    />
+                  </label>
+                )}
               </article>
             ))}
           </div>

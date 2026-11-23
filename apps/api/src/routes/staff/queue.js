@@ -6,6 +6,7 @@ import { normalizeId } from "../../catalog/validation.js";
 import { ApiError } from "../../lib/api-error.js";
 import { asyncRoute } from "../../lib/async-route.js";
 import { prisma } from "../../db.js";
+import { enqueueEmail } from "../../notifications/outbox.js";
 
 const router = Router();
 const STAFF_QUEUE_ROLES = ["ADMIN", "RECEPTIONIST", "NURSE"];
@@ -152,6 +153,27 @@ router.post(
           where: { doctorId_date: { doctorId, date } },
           data: { currentTokenNumber: booking.tokenNumber },
         });
+        const upcomingBookings = await transaction.booking.findMany({
+          where: {
+            doctorId,
+            date,
+            status: "BOOKED",
+            tokenNumber: { gt: booking.tokenNumber },
+          },
+          orderBy: { tokenNumber: "asc" },
+          take: 2,
+          select: { id: true },
+        });
+        if (upcomingBookings[1]) {
+          await enqueueEmail(transaction, {
+            dedupeKey: `token-approaching:${upcomingBookings[1].id}`,
+            eventType: "TOKEN_APPROACHING",
+            payload: {
+              bookingId: upcomingBookings[1].id,
+              currentTokenNumber: booking.tokenNumber,
+            },
+          });
+        }
       } else {
         booking = await transaction.booking.findFirst({
           where: { id: bookingId, doctorId, date },

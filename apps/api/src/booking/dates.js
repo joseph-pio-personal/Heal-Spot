@@ -56,6 +56,38 @@ export function hospitalLocalTime(date, timeZone) {
   return `${parts.hour}:${parts.minute}`;
 }
 
+export function hospitalLocalDateTimeToUtc(dateValue, timeValue, timeZone) {
+  parseBookingDate(dateValue);
+  if (typeof timeValue !== "string" || !/^([01]\d|2[0-3]):[0-5]\d$/.test(timeValue)) {
+    throw new ApiError(400, "Time must use 24-hour HH:mm format.");
+  }
+  const [year, month, day] = dateValue.split("-").map(Number);
+  const [hour, minute] = timeValue.split(":").map(Number);
+  const target = Date.UTC(year, month - 1, day, hour, minute);
+  let candidate = target;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const parts = formatParts(new Date(candidate), timeZone, {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    });
+    const observed = Date.UTC(
+      Number(parts.year),
+      Number(parts.month) - 1,
+      Number(parts.day),
+      Number(parts.hour),
+      Number(parts.minute),
+    );
+    const correction = target - observed;
+    candidate += correction;
+    if (correction === 0) break;
+  }
+  return new Date(candidate);
+}
+
 export async function getHospitalTimeZone(database) {
   const settings = await database.hospitalSettings.findUnique({
     where: { id: "default" },

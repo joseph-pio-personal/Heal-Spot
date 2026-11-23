@@ -4,3 +4,4 @@
 node_modules/
 dist/
 apps/api/uploads/profile-images/
+apps/api/uploads/medical-documents/

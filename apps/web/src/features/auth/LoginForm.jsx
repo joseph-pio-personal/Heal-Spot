@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { apiRequest } from "../../api/client.js";
 
-function LoginForm({ onAuthenticated, onHome }) {
+function LoginForm({ onAuthenticated, onHome, initialNotice = "" }) {
   const [role, setRole] = useState("PATIENT");
   const [mode, setMode] = useState("login");
   const [form, setForm] = useState({
@@ -24,6 +24,11 @@ function LoginForm({ onAuthenticated, onHome }) {
   });
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [notice, setNotice] = useState(initialNotice);
+  const [resending, setResending] = useState(false);
+  const [verificationEmail, setVerificationEmail] = useState("");
+  const [verificationCode, setVerificationCode] = useState("");
+  const [verifying, setVerifying] = useState(false);
 
   const updateForm = (event) => {
     setForm((current) => ({ ...current, [event.target.name]: event.target.value }));
@@ -33,23 +38,27 @@ function LoginForm({ onAuthenticated, onHome }) {
     setRole(nextRole);
     if (nextRole !== "PATIENT") setMode("login");
     setError("");
+    setNotice("");
   };
 
   const switchMode = (nextMode) => {
     setMode(nextMode);
     setError("");
+    setNotice("");
+    setVerificationEmail("");
+    setVerificationCode("");
   };
 
   const handlePatientSubmit = async (event) => {
     event.preventDefault();
     setError("");
+    const registering = mode === "register";
     if (mode === "register" && form.password !== form.confirmPassword) {
       setError("Passwords do not match.");
       return;
     }
     setBusy(true);
     try {
-      const registering = mode === "register";
       const payload = registering
         ? {
           name: form.name,
@@ -59,15 +68,67 @@ function LoginForm({ onAuthenticated, onHome }) {
           password: form.password,
         }
         : { identifier: form.identifier, password: form.password };
-      const { user } = await apiRequest(
+      const result = await apiRequest(
         registering ? "/api/auth/patient/register" : "/api/auth/patient/login",
         { method: "POST", body: JSON.stringify(payload) },
       );
+      if (registering) {
+        setVerificationEmail(result.email);
+        setVerificationCode("");
+        setNotice(result.message);
+        setMode("verify");
+        setForm((current) => ({
+          ...current,
+          password: "",
+          confirmPassword: "",
+        }));
+      } else {
+        onAuthenticated(result.user);
+      }
+    } catch (requestError) {
+      setError(requestError.message);
+      if (!registering && requestError.message.includes("verify your email") && form.identifier.includes("@")) {
+        setVerificationEmail(form.identifier);
+        setMode("verify");
+        setNotice("Enter the verification code sent to your email, or request a new one.");
+        setError("");
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleVerificationSubmit = async (event) => {
+    event.preventDefault();
+    setError("");
+    setVerifying(true);
+    try {
+      const { user } = await apiRequest("/api/auth/patient/verify-email", {
+        method: "POST",
+        body: JSON.stringify({ email: verificationEmail, code: verificationCode }),
+      });
       onAuthenticated(user);
     } catch (requestError) {
       setError(requestError.message);
     } finally {
-      setBusy(false);
+      setVerifying(false);
+    }
+  };
+
+  const resendVerification = async () => {
+    setError("");
+    setNotice("");
+    setResending(true);
+    try {
+      const result = await apiRequest("/api/auth/patient/resend-verification", {
+        method: "POST",
+        body: JSON.stringify({ email: verificationEmail || form.identifier }),
+      });
+      setNotice(result.message);
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setResending(false);
     }
   };
 
@@ -136,15 +197,49 @@ function LoginForm({ onAuthenticated, onHome }) {
 
         {role === "PATIENT" ? (
           <>
-            <div className="auth-mode">
+            {mode !== "verify" && <div className="auth-mode">
               <button className={mode === "login" ? "auth-mode-active" : ""} onClick={() => switchMode("login")} type="button">
                 Sign in
               </button>
               <button className={mode === "register" ? "auth-mode-active" : ""} onClick={() => switchMode("register")} type="button">
                 Create account
               </button>
-            </div>
-            <form className="auth-form" onSubmit={handlePatientSubmit}>
+            </div>}
+            {mode === "verify" ? (
+              <form className="auth-form" onSubmit={handleVerificationSubmit}>
+                <p className="staff-login-note">
+                  Enter the 6-digit code sent to <strong>{verificationEmail}</strong>. The code expires in 10 minutes.
+                </p>
+                <label>
+                  Email verification code
+                  <input
+                    autoComplete="one-time-code"
+                    autoFocus
+                    inputMode="numeric"
+                    maxLength={6}
+                    minLength={6}
+                    name="verificationCode"
+                    onChange={(event) => setVerificationCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
+                    pattern="[0-9]{6}"
+                    placeholder="000000"
+                    required
+                    value={verificationCode}
+                  />
+                </label>
+                {notice && <p className="form-message form-success" role="status">{notice}</p>}
+                {error && <p className="form-message form-error" role="alert">{error}</p>}
+                <button className="button auth-submit" disabled={verifying} type="submit">
+                  {verifying ? "Verifying..." : "Verify and continue"}
+                  {!verifying && <ArrowRight size={16} />}
+                </button>
+                <button className="admin-row-action" disabled={resending} onClick={resendVerification} type="button">
+                  {resending ? "Sending..." : "Resend code"}
+                </button>
+                <button className="admin-row-action" onClick={() => switchMode("login")} type="button">
+                  Back to sign in
+                </button>
+              </form>
+            ) : <form className="auth-form" onSubmit={handlePatientSubmit}>
               {mode === "register" ? (
                 <>
                   <label>
@@ -248,12 +343,18 @@ function LoginForm({ onAuthenticated, onHome }) {
                   />
                 </label>
               )}
+              {notice && <p className="form-message form-success" role="status">{notice}</p>}
               {error && <p className="form-message form-error" role="alert">{error}</p>}
+              {mode === "login" && role === "PATIENT" && error.includes("verify your email") && form.identifier.includes("@") && (
+                <button className="admin-row-action" disabled={resending} onClick={resendVerification} type="button">
+                  {resending ? "Sending..." : "Resend verification code"}
+                </button>
+              )}
               <button className="button auth-submit" disabled={busy} type="submit">
                 {busy ? "Please wait..." : mode === "register" ? "Create patient account" : "Sign in"}
                 {!busy && <ArrowRight size={16} />}
               </button>
-            </form>
+            </form>}
             <div className="auth-footnote"><ShieldCheck size={15} /> Mobile is optional and never used to sign in.</div>
           </>
         ) : (

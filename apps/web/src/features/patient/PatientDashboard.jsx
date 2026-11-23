@@ -205,11 +205,17 @@ function PatientDashboard() {
     setNotice("");
     setBusy(doctorId);
     try {
-      const { booking } = await apiRequest("/api/bookings", {
+      const { booking, emailStatus } = await apiRequest("/api/bookings", {
         method: "POST",
         body: JSON.stringify({ profileId: selectedProfileId, doctorId, date: selectedDate }),
       });
-      setNotice(`Token ${booking.tokenNumber} is booked for ${booking.patientProfile.name}.`);
+      const emailNotice = {
+        QUEUED: " Confirmation email queued.",
+        NOT_CONFIGURED: " Email sending is not configured yet.",
+        NO_RECIPIENT: " No email address is linked to your patient account.",
+        FAILED: " Confirmation email could not be sent; please contact the clinic if needed.",
+      }[emailStatus] ?? "";
+      setNotice(`Token ${booking.tokenNumber} is booked for ${booking.patientProfile.name}.${emailNotice}`);
       setTrackingId(booking.id);
       setRefreshVersion((current) => current + 1);
     } catch (requestError) {

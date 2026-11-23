@@ -59,6 +59,11 @@
 .staff-queue-overview { grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr); }
 .staff-status-field { margin-top: 12px; }
 .staff-queue-action-buttons { display: grid; gap: 12px; margin-top: 16px; }
+.staff-leave-form { display: grid; gap: 9px; margin-top: 16px; padding-top: 14px; border-top: 1px solid #f1f0f1; }
+.staff-leave-form > strong { color: #38383e; font: 700 11px var(--font-display); }
+.staff-leave-date-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.staff-leave-form label { display: grid; gap: 5px; color: #55565e; font-size: 9px; font-weight: 700; }
+.staff-leave-form input { width: 100%; min-width: 0; min-height: 34px; padding: 0 8px; border: 1px solid #e8e7e9; border-radius: 7px; color: var(--ink); font: 500 10px "DM Sans", sans-serif; }
 .staff-call-button { width: fit-content; min-height: 39px; padding: 0 13px; font-size: 10px; cursor: pointer; }
 .staff-call-button:disabled { background: #eeedef; color: #85868e; box-shadow: none; cursor: not-allowed; transform: none; }
 .staff-current-actions { display: grid; gap: 8px; padding-top: 12px; border-top: 1px solid #f1f0f1; color: #777983; font-size: 10px; }
@@ -70,7 +75,11 @@
 .staff-queue-stats strong { color: #38383e; font: 750 13px var(--font-display); }
 .operations-footnote { display: flex; align-items: center; gap: 6px; margin: 12px 0 0; color: #85868e; font-size: 9px; line-height: 1.5; }
 .operations-footnote svg { flex: 0 0 auto; color: #438260; }
-.staff-token-row { grid-template-columns: 42px minmax(0, 1fr) auto; }
+.staff-token-row { grid-template-columns: 42px minmax(0, 1fr) auto auto; }
+.staff-prescription-upload { position: relative; display: inline-flex; align-items: center; justify-content: center; min-height: 30px; padding: 0 9px; border: 1px solid #e8e7e9; border-radius: 7px; color: #777983; font-size: 9px; font-weight: 700; cursor: pointer; }
+.staff-prescription-upload:hover { border-color: #e78384; color: var(--red); }
+.staff-prescription-upload input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+.staff-prescription-upload input:disabled { cursor: not-allowed; }
 .staff-token-current { margin-inline: -8px; padding-inline: 8px; border-radius: 8px; background: #fffaf3; }
 .doctor-dashboard-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
 .doctor-stat-card { min-width: 0; display: grid; align-content: start; gap: 10px; padding: 14px; border: 1px solid #f0edef; border-radius: 11px; background: #fff; box-shadow: 0 7px 22px #26202605; }
@@ -104,6 +113,7 @@
   .patient-booking-row > .operations-status { grid-column: 2; grid-row: 2; justify-self: start; }
   .patient-booking-actions { grid-column: 3; grid-row: 1 / span 2; display: grid; gap: 3px; justify-items: end; }
   .staff-token-row { grid-template-columns: 38px minmax(0, 1fr) auto; gap: 8px; }
+  .staff-prescription-upload { grid-column: 2 / -1; justify-self: start; }
 }
 
 @media (max-width: 420px) {

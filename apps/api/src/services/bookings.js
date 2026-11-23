@@ -1,13 +1,16 @@
 import {
+  addCalendarDays,
   assertWithinBookingWindow,
   getHospitalTimeZone,
   hospitalLocalDate,
+  hospitalLocalDateTimeToUtc,
   hospitalLocalTime,
   parseBookingDate,
   weekdayForDate,
 } from "../booking/dates.js";
 import { lockDoctorDay } from "../booking/doctor-day.js";
 import { ApiError } from "../lib/api-error.js";
+import { enqueueEmail } from "../notifications/outbox.js";
 
 const ACTIVE_BOOKING_STATUSES = ["BOOKED", "CALLED"];
 
@@ -17,16 +20,23 @@ function isSessionAvailable(sessions, dateValue, timeZone, now) {
   return sessions.some((session) => session.endTime.toISOString().slice(11, 16) > localTime);
 }
 
+export function shouldQueueAppointmentReminder(dateValue, timeZone, now) {
+  const today = hospitalLocalDate(now, timeZone);
+  return dateValue === addCalendarDays(today, 1)
+    && hospitalLocalTime(now, timeZone) >= "07:00";
+}
+
 export async function createPatientBooking(database, {
   accountId,
   profileId,
   doctorId,
   dateValue,
+  now = new Date(),
 }) {
   const date = parseBookingDate(dateValue);
   return database.$transaction(async (transaction) => {
     const timeZone = await getHospitalTimeZone(transaction);
-    assertWithinBookingWindow(dateValue, timeZone);
+    assertWithinBookingWindow(dateValue, timeZone, now);
 
     const profile = await transaction.patientProfile.findFirst({
       where: { id: profileId, accountId },
@@ -48,12 +58,25 @@ export async function createPatientBooking(database, {
     const weekday = weekdayForDate(dateValue);
     const sessions = doctor.schedules.filter((session) => session.weekday === weekday);
     const capacity = sessions.reduce((total, session) => total + session.maxTokens, 0);
-    if (capacity === 0 || !isSessionAvailable(sessions, dateValue, timeZone, new Date())) {
+    if (capacity === 0 || !isSessionAvailable(sessions, dateValue, timeZone, now)) {
       throw new ApiError(409, "This doctor has no upcoming clinic session on the selected date.");
     }
 
     const doctorDay = await lockDoctorDay(transaction, doctorId, date);
-    if (doctorDay.status === "ON_LEAVE") {
+    const [dayStart, dayEnd] = [
+      hospitalLocalDateTimeToUtc(dateValue, "00:00", timeZone),
+      hospitalLocalDateTimeToUtc(addCalendarDays(dateValue, 1), "00:00", timeZone),
+    ];
+    const activeLeave = await transaction.doctorLeave.findFirst({
+      where: {
+        doctorId,
+        status: "ACTIVE",
+        startsAt: { lt: dayEnd },
+        endsAt: { gt: dayStart },
+      },
+      select: { id: true },
+    });
+    if (doctorDay.status === "ON_LEAVE" || activeLeave) {
       throw new ApiError(409, "This doctor is unavailable on the selected date.");
     }
 
@@ -84,7 +107,7 @@ export async function createPatientBooking(database, {
       throw new ApiError(409, "No tokens remain for this doctor on the selected date.");
     }
 
-    return transaction.booking.create({
+    const booking = await transaction.booking.create({
       data: {
         patientProfileId: profileId,
         doctorId,
@@ -100,6 +123,20 @@ export async function createPatientBooking(database, {
         patientProfile: { select: { id: true, name: true } },
       },
     });
+    await enqueueEmail(transaction, {
+      dedupeKey: `booking-confirmed:${booking.id}`,
+      eventType: "BOOKING_CONFIRMED",
+      payload: { bookingId: booking.id },
+    });
+    if (shouldQueueAppointmentReminder(dateValue, timeZone, now)) {
+      const today = hospitalLocalDate(now, timeZone);
+      await enqueueEmail(transaction, {
+        dedupeKey: `appointment-reminder:${booking.id}:${today}`,
+        eventType: "APPOINTMENT_REMINDER",
+        payload: { bookingId: booking.id, sendDate: today },
+      });
+    }
+    return booking;
   }, {
     maxWait: 5_000,
     timeout: 10_000,
@@ -120,7 +157,7 @@ export async function cancelPatientBooking(database, { accountId, bookingId }) {
       throw new ApiError(409, "A booking can only be cancelled before the doctor calls its token.");
     }
 
-    return transaction.booking.update({
+    const updated = await transaction.booking.update({
       where: { id: booking.id },
       data: {
         status: "CANCELLED",
@@ -132,5 +169,11 @@ export async function cancelPatientBooking(database, { accountId, bookingId }) {
         patientProfile: { select: { id: true, name: true } },
       },
     });
+    await enqueueEmail(transaction, {
+      dedupeKey: `booking-cancelled:${updated.id}`,
+      eventType: "BOOKING_CANCELLED",
+      payload: { bookingId: updated.id, reason: "Cancelled by patient." },
+    });
+    return updated;
   });
 }

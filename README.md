@@ -130,12 +130,17 @@ hospital's current date through seven calendar days ahead. A profile can hold
 one active booking per doctor per day, so it can book different doctors on the same day. Daily
 capacity combines all active sessions for that doctor and weekday; cancelled
 tokens release capacity but token numbers are not reused.
+Successful patient bookings send a confirmation email to the patient's account
+email. Email delivery failures do not undo bookings. For Gmail, set
+`SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, and
+`MAIL_FROM` in `apps/api/.env`; `SMTP_PASS` must be a Google App Password, not
+the account password. The API environment template is `apps/api/.env.example`.
 
 Receptionists, nurses, and admins can view a doctor's daily queue, update the
 doctor's daily status, call the next token, recall the current token, skip it,
 or mark it complete. Queue actions are limited to the current hospital day,
 and a doctor must be marked Present before staff can manage the queue. Walk-in
-booking and SMS/OTP delivery are not part of this phase.
+booking and SMS/push delivery are not part of this phase.
 Doctors have a read-only dashboard for their own daily schedule and patient
 queue; queue operations remain with authorized hospital staff.
 
@@ -154,5 +159,39 @@ The Phase 2 booking and queue models were included in the initial schema, so
 this phase does not add a database migration. Patient tracking polls the API
 every 10 seconds while its panel is open.
 
-Leave workflows, walk-in tokens, notifications, and the medical document vault
-remain future phases.
+## Phase 3: Email notifications, doctor leave, and prescriptions
+
+New patient registrations receive a six-digit email verification code, which
+they enter on the registration screen to verify their address and sign in
+immediately. Codes expire after 10 minutes and allow up to five attempts;
+patients can request a replacement code. Subsequent visits use the regular
+email/username and password sign-in flow. Existing accounts are marked verified
+by the email-outbox migration to preserve access.
+Booking confirmations and cancellations, doctor-leave cancellations, and
+two-positions-away queue alerts are added to a transactional email outbox.
+Failed deliveries are retried with backoff; email failures do not roll back
+bookings or visits. Appointment reminders are queued at 07:00 on the day before
+the appointment, and each doctor with an email receives a daily booking count
+at 07:00, including zero-booking days. These schedules use the hospital
+timezone from settings (default `Asia/Kolkata`).
+
+Receptionists, nurses, and admins can record doctor leave. Leave cancels
+affected booked appointments and queues patient emails; a leave range is
+rejected if it includes a currently called token. Staff can upload a
+prescription after a visit is completed. Patients receive a sign-in-required
+link to download their own prescription; files are not attached to emails.
+Development stores private documents locally in `apps/api/uploads`, which is
+ignored by Git. Configure private object storage before production deployment.
+
+Configure Gmail SMTP values in `apps/api/.env`, keep credentials out of Git,
+then regenerate the Prisma client and apply the email migrations:
+
+```sh
+npm run db:generate
+npm run db:migrate -- --name email_outbox
+npm run db:migrate -- --name patient_email_otp
+```
+
+The worker starts with the API and polls the outbox every five seconds. The
+hospital timezone can be set in hospital settings; the default is
+`Asia/Kolkata`.

@@ -6,8 +6,11 @@ import { authRouter } from "./routes/auth/index.js";
 import { catalogRouter } from "./routes/catalog/index.js";
 import { bookingsRouter } from "./routes/bookings.js";
 import { patientProfilesRouter } from "./routes/patient/profiles.js";
+import { patientDocumentsRouter } from "./routes/patient/documents.js";
 import { profileRouter } from "./routes/profile.js";
 import { staffQueueRouter } from "./routes/staff/queue.js";
+import { staffLeavesRouter } from "./routes/staff/leaves.js";
+import { staffDocumentsRouter } from "./routes/staff/documents.js";
 import { doctorDashboardRouter } from "./routes/doctor/dashboard.js";
 import { ApiError } from "./lib/api-error.js";
 import { prisma } from "./db.js";
@@ -43,8 +46,11 @@ app.get("/api/health", (_request, response) => {
 app.use("/api/auth", authRouter);
 app.use("/api/profile", profileRouter);
 app.use("/api/patient/profiles", patientProfilesRouter);
+app.use("/api/patient/documents", patientDocumentsRouter);
 app.use("/api/bookings", bookingsRouter);
 app.use("/api/staff/queue", staffQueueRouter);
+app.use("/api/staff/leaves", staffLeavesRouter);
+app.use("/api/staff", staffDocumentsRouter);
 app.use("/api/doctor", doctorDashboardRouter);
 app.use("/api", catalogRouter);
 
