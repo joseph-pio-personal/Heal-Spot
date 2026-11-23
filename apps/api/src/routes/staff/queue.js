@@ -189,6 +189,14 @@ router.post(
             data: { status: action === "SKIP" ? "SKIPPED" : "COMPLETED" },
             include: { patientProfile: { select: { id: true, name: true } } },
           });
+          if (action === "COMPLETE") {
+            await transaction.visit.upsert({
+              where: { bookingId: booking.id },
+              create: { bookingId: booking.id, completedAt: new Date() },
+              update: { completedAt: new Date() },
+              select: { id: true },
+            });
+          }
         }
       }
 

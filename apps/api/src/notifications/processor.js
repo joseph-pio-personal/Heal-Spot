@@ -126,6 +126,40 @@ export async function buildEmail(database, event) {
     };
   }
 
+  if (event.eventType === "PRESCRIPTION_FINALIZED") {
+    const prescription = await database.prescription.findFirst({
+      where: { id: payload.prescriptionId, status: "FINALIZED" },
+      include: {
+        doctor: { select: { name: true } },
+        visit: {
+          include: {
+            booking: {
+              include: {
+                patientProfile: { select: { name: true } },
+                bookedByAccount: { select: { email: true } },
+              },
+            },
+          },
+        },
+      },
+    });
+    const booking = prescription?.visit.booking;
+    if (!booking?.bookedByAccount?.email) return null;
+    return {
+      to: booking.bookedByAccount.email,
+      subject: "A prescription is ready in Heal Spot",
+      text: [
+        `Hello ${booking.patientProfile.name},`,
+        "",
+        `${prescription.doctor.name} has prepared a prescription for your visit.`,
+        "Sign in to Heal Spot to review and print it:",
+        `${appUrl()}/#prescription/${prescription.id}`,
+        "",
+        "This private link requires your patient account sign-in.",
+      ].join("\n"),
+    };
+  }
+
   if (event.eventType === "BOOKING_CONFIRMED"
     || event.eventType === "BOOKING_CANCELLED"
     || event.eventType === "APPOINTMENT_REMINDER"

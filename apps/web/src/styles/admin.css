@@ -1,4 +1,4 @@
-.admin-dashboard { width: min(1120px, calc(100% - 48px)); margin: 22px auto 0; }
+.admin-dashboard { width: min(1240px, calc(100% - 48px)); margin: 22px auto 0; }
 .admin-welcome { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 24px 27px; border: 1px solid #f1e8e7; border-radius: 15px; background: linear-gradient(110deg, #fff8f7, #fff 70%); }
 .admin-welcome .eyebrow { font-size: 9px; }
 .admin-welcome h2 { margin: 8px 0 5px; font: 800 23px var(--font-display); letter-spacing: -.8px; }

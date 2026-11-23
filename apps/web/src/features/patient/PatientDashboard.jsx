@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { apiRequest } from "../../api/client.js";
 import Pagination, { usePagination } from "../admin/Pagination.jsx";
+import PatientPrescriptionSection from "./PatientPrescriptionSection.jsx";
 
 function hospitalDateToday() {
   const parts = new Intl.DateTimeFormat("en-US", {
@@ -554,6 +555,7 @@ function PatientDashboard() {
           </div>
         )}
       </section>
+      <PatientPrescriptionSection />
       <p className="operations-footnote"><ShieldCheck size={14} /> Your mobile number is optional contact information; no SMS is sent.</p>
     </section>
   );

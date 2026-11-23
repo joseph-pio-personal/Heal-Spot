@@ -195,3 +195,33 @@ npm run db:migrate -- --name patient_email_otp
 The worker starts with the API and polls the outbox every five seconds. The
 hospital timezone can be set in hospital settings; the default is
 `Asia/Kolkata`.
+
+## Phase 4: Doctor-authored prescriptions
+
+Doctors can create a prescription for a booking in their own queue once the
+token is called or the visit is completed. Drafts are doctor-only until
+finalized; finalization requires at least one medication and locks that
+version. A later correction is recorded as a new amendment version instead of
+overwriting the issued prescription. Each medication records clinician-entered
+name, strength, dosage, route, frequency, duration, quantity, and instructions.
+The application does not recommend medications or generate treatment advice.
+
+Patients can view finalized prescriptions in their account or open the private
+email link after signing in, then print or save the page as a PDF. Prescription
+view access and doctor draft/finalization actions are audit logged. Staff file
+uploads remain available for scanned prescriptions and other visit documents.
+New API routes are under `/api/doctor/prescriptions` and
+`/api/patient/prescriptions`:
+
+- Doctors: `GET/POST /api/doctor/prescriptions/bookings/:bookingId`,
+  `PUT /api/doctor/prescriptions/:prescriptionId`, and
+  `POST /api/doctor/prescriptions/:prescriptionId/finalize`.
+- Patients: `GET /api/patient/prescriptions` and
+  `GET /api/patient/prescriptions/:prescriptionId`.
+
+Apply the additive schema change with:
+
+```sh
+npm run db:generate
+npm run db:migrate -- --name doctor_prescriptions
+```

@@ -165,3 +165,28 @@ test("prescription email contains a login-required secure app link", async () =>
   assert.match(email.text, /#document\/document-id/);
   assert.match(email.text, /requires your patient account sign-in/);
 });
+
+test("finalized prescription email links to the patient's authenticated prescription view", async () => {
+  const email = await buildEmail({
+    prescription: {
+      findFirst: async () => ({
+        id: "prescription-id",
+        doctor: { name: "Dr Example" },
+        visit: {
+          booking: {
+            patientProfile: { name: "Patient Example" },
+            bookedByAccount: { email: "patient@example.com" },
+          },
+        },
+      }),
+    },
+  }, {
+    eventType: "PRESCRIPTION_FINALIZED",
+    payload: { prescriptionId: "prescription-id" },
+  });
+
+  assert.equal(email.to, "patient@example.com");
+  assert.match(email.text, /#prescription\/prescription-id/);
+  assert.match(email.text, /patient account sign-in/);
+  assert.doesNotMatch(email.text, /medication|dosage|strength/i);
+});

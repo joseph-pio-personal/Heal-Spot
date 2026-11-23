@@ -61,20 +61,26 @@ Important database decisions:
 1. **Foundation — implemented:** React, Express, Prisma/PostgreSQL,
    configuration, migrations, patient/staff sign-in, and role-based access.
 2. **Catalogue and staff panel — implemented:** department and doctor
-   management, weekly schedules, fees, public active catalog endpoints, staff
-   account management, audit logging, session revocation, and a responsive
-   white/red admin workspace.
-3. **Booking and live queue — remaining:** implement patient profiles, doctor browsing,
-   atomic token allocation, booking/cancellation, walk-ins, queue actions, and
-   patient queue updates.
-4. **Leave and notifications — remaining:** implement leave previews and booking
-   cancellation, transactional outbox processing, SMS/push delivery, and
-   delivery retries.
-5. **Visits and document vault — remaining:** implement visit history, staff uploads,
-   private storage, access checks, document viewing/download, and audit trails.
-6. **Hardening and launch — remaining:** add focused tests, security/privacy review, backup
-   and restore checks, load/concurrency tests, hospital UAT, staff training, and
-   staged production rollout.
+   management, weekly schedules, fees, staff account management, audit
+   logging, session revocation, and a responsive white/red admin workspace.
+3. **Booking and live queue — implemented:** patient profiles, doctor browsing,
+   atomic token allocation, booking/cancellation, queue actions, and patient
+   queue tracking. Walk-in booking remains out of scope.
+4. **Leave and email notifications — implemented:** doctor leave and affected
+   booking cancellation, a transactional retryable email outbox, registration
+   email verification, booking and queue notifications, reminders, and doctor
+   summaries. SMS and push delivery remain unconfigured.
+5. **Visits and document vault — implemented for development:** staff
+   prescription/document uploads, private local storage, patient ownership
+   checks, secure downloads, and email links. Production object storage is
+   still required before launch.
+6. **Doctor-authored prescriptions — implemented:** doctors can draft,
+   finalize, and amend structured prescriptions for their own called/completed
+   visits. Patients can securely view and print finalized prescriptions;
+   doctor actions and patient views are audit logged.
+7. **Hardening and launch — remaining:** production object storage, security
+   and privacy review, backup/restore checks, load/concurrency testing,
+   hospital UAT, staff training, and staged production rollout.
 
 ## UI direction
 

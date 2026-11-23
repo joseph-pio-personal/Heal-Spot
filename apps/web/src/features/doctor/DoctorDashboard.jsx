@@ -9,6 +9,7 @@ import {
   Users,
 } from "lucide-react";
 import { apiRequest } from "../../api/client.js";
+import DoctorPrescriptionEditor from "./DoctorPrescriptionEditor.jsx";
 
 function statusLabel(status) {
   return status.replaceAll("_", " ").toLowerCase().replace(/\b\w/g, (letter) => letter.toUpperCase());
@@ -28,6 +29,7 @@ function DoctorDashboard() {
   const [loading, setLoading] = useState(true);
   const [refreshVersion, setRefreshVersion] = useState(0);
   const [error, setError] = useState("");
+  const [prescriptionBookingId, setPrescriptionBookingId] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -146,25 +148,41 @@ function DoctorDashboard() {
             {bookings.length === 0 ? (
               <p className="admin-empty">There are no bookings in your queue today.</p>
             ) : (
-              <div className="staff-token-list">
+              <div className="doctor-queue-bookings">
                 {bookings.map((booking) => (
-                  <article
-                    className={`staff-token-row${booking.status === "CALLED" ? " staff-token-current" : ""}`}
-                    key={booking.id}
-                  >
-                    <span className="patient-booking-token">#{booking.tokenNumber}</span>
-                    <div className="patient-booking-copy">
-                      <strong>{booking.patientProfile.name}</strong>
-                      <span>
-                        {booking.status === "CALLED"
-                          ? "Currently being called"
-                          : `Booked ${new Date(booking.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`}
+                  <div className="doctor-queue-booking" key={booking.id}>
+                    <article
+                      className={`staff-token-row${booking.status === "CALLED" ? " staff-token-current" : ""}`}
+                    >
+                      <span className="patient-booking-token">#{booking.tokenNumber}</span>
+                      <div className="patient-booking-copy">
+                        <strong>{booking.patientProfile.name}</strong>
+                        <span>
+                          {booking.status === "CALLED"
+                            ? "Currently being called"
+                            : `Booked ${new Date(booking.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`}
+                        </span>
+                      </div>
+                      <span className={`operations-status operations-status-${booking.status.toLowerCase()}`}>
+                        {statusLabel(booking.status)}
                       </span>
-                    </div>
-                    <span className={`operations-status operations-status-${booking.status.toLowerCase()}`}>
-                      {statusLabel(booking.status)}
-                    </span>
-                  </article>
+                      {["CALLED", "COMPLETED"].includes(booking.status) && (
+                        <button
+                          className="admin-row-action doctor-prescription-open"
+                          onClick={() => setPrescriptionBookingId((current) => current === booking.id ? "" : booking.id)}
+                          type="button"
+                        >
+                          {prescriptionBookingId === booking.id ? "Close" : "Prescription"}
+                        </button>
+                      )}
+                    </article>
+                    {prescriptionBookingId === booking.id && (
+                      <DoctorPrescriptionEditor
+                        bookingId={booking.id}
+                        onClose={() => setPrescriptionBookingId("")}
+                      />
+                    )}
+                  </div>
                 ))}
               </div>
             )}

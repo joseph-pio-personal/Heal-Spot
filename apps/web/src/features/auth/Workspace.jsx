@@ -62,7 +62,7 @@ function Workspace({ user, onHome, onSignOut }) {
             : isAdmin
               ? "Manage hospital services and keep today’s doctor queues moving."
               : user.role === "DOCTOR"
-                ? "Review your professional details and clinic schedule."
+                ? "Review your clinic queue and prepare prescriptions for your visits."
                 : "Manage today’s doctor queues and keep patients informed."}
         </p>
         <div className="role-banner">

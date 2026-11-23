@@ -124,6 +124,11 @@ enum OutboxStatus {
   FAILED
 }
 
+enum PrescriptionStatus {
+  DRAFT
+  FINALIZED
+}
+
 model PatientAccount {
   id             String        @id @default(uuid()) @db.Uuid
   username       String?       @unique @db.VarChar(32)
@@ -143,6 +148,7 @@ model PatientAccount {
   bookings      Booking[]        @relation("BookingBookedByAccount")
   notifications Notification[]
   devices       PatientDevice[]
+  auditLogs     AuditLog[]
 }
 
 model PatientDevice {
@@ -247,6 +253,8 @@ model Doctor {
   days        DoctorDay[]
   bookings    Booking[]
   queueEvents QueueEvent[]
+  prescriptions Prescription[]
+  auditLogs    AuditLog[]
 
   @@index([departmentId, status])
 }
@@ -352,6 +360,48 @@ model Visit {
 
   booking   Booking           @relation(fields: [bookingId], references: [id], onDelete: Restrict)
   documents MedicalDocument[]
+  prescriptions Prescription[]
+}
+
+model Prescription {
+  id                    String             @id @default(uuid()) @db.Uuid
+  visitId               String             @db.Uuid
+  doctorId              String             @db.Uuid
+  version               Int                @default(1)
+  status                PrescriptionStatus @default(DRAFT)
+  replacesPrescriptionId String?            @unique @db.Uuid
+  notes                 String?            @db.VarChar(2000)
+  issuedAt              DateTime?          @db.Timestamptz(3)
+  createdAt             DateTime           @default(now()) @db.Timestamptz(3)
+  updatedAt             DateTime           @updatedAt @db.Timestamptz(3)
+
+  visit               Visit          @relation(fields: [visitId], references: [id], onDelete: Restrict)
+  doctor              Doctor         @relation(fields: [doctorId], references: [id], onDelete: Restrict)
+  replacesPrescription Prescription? @relation("PrescriptionAmendments", fields: [replacesPrescriptionId], references: [id], onDelete: Restrict)
+  amendment           Prescription?  @relation("PrescriptionAmendments")
+  items               PrescriptionItem[]
+
+  @@unique([visitId, version])
+  @@index([doctorId, status, createdAt])
+}
+
+model PrescriptionItem {
+  id             String   @id @default(uuid()) @db.Uuid
+  prescriptionId String   @db.Uuid
+  position       Int
+  medicationName String   @db.VarChar(200)
+  strength       String?  @db.VarChar(100)
+  dosage         String   @db.VarChar(120)
+  route          String?  @db.VarChar(80)
+  frequency      String   @db.VarChar(120)
+  duration       String   @db.VarChar(100)
+  quantity       String?  @db.VarChar(100)
+  instructions   String?  @db.VarChar(500)
+  createdAt      DateTime @default(now()) @db.Timestamptz(3)
+
+  prescription Prescription @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+
+  @@unique([prescriptionId, position])
 }
 
 model MedicalDocument {
@@ -395,6 +445,8 @@ model Notification {
 model AuditLog {
   id          String   @id @default(uuid()) @db.Uuid
   staffUserId String?  @db.Uuid
+  doctorId    String?  @db.Uuid
+  patientAccountId String? @db.Uuid
   action      String   @db.VarChar(120)
   entityType  String   @db.VarChar(100)
   entityId    String   @db.VarChar(100)
@@ -402,9 +454,13 @@ model AuditLog {
   createdAt   DateTime @default(now()) @db.Timestamptz(3)
 
   staffUser StaffUser? @relation(fields: [staffUserId], references: [id], onDelete: SetNull)
+  doctor    Doctor?    @relation(fields: [doctorId], references: [id], onDelete: SetNull)
+  patientAccount PatientAccount? @relation(fields: [patientAccountId], references: [id], onDelete: SetNull)
 
   @@index([entityType, entityId, createdAt])
   @@index([staffUserId, createdAt])
+  @@index([doctorId, createdAt])
+  @@index([patientAccountId, createdAt])
 }
 
 model OutboxEvent {

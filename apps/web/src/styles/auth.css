@@ -1,9 +1,9 @@
 .auth-page { min-height: 100vh; padding-bottom: 48px; background: radial-gradient(ellipse at 50% 25%, #fff8f7 0, #fff 56%); }
 .auth-session-check { display: grid; place-items: center; padding: 0 18px; color: #777983; font-size: 12px; }
-.auth-topbar { width: min(1120px, calc(100% - 64px)); height: 78px; display: flex; align-items: center; justify-content: space-between; margin: 0 auto; border-bottom: 1px solid #f1eff0; }
+.auth-topbar { width: min(1240px, calc(100% - 64px)); height: 78px; display: flex; align-items: center; justify-content: space-between; margin: 0 auto; border-bottom: 1px solid #f1eff0; }
 .quiet-button, .home-link { display: inline-flex; align-items: center; gap: 7px; padding: 8px 0; border: 0; background: transparent; color: #777983; font-size: 12px; font-weight: 600; cursor: pointer; }
 .quiet-button:hover, .home-link:hover { color: var(--red); }
-.auth-card, .workspace-card { width: min(100% - 36px, 430px); margin: 52px auto 0; padding: 30px; border: 1px solid #efedef; border-radius: 17px; background: #fff; box-shadow: 0 17px 55px #35212a0c; }
+.auth-card, .workspace-card { width: min(100% - 36px, 480px); margin: 52px auto 0; padding: 30px; border: 1px solid #efedef; border-radius: 17px; background: #fff; box-shadow: 0 17px 55px #35212a0c; }
 .auth-heading { text-align: center; }
 .auth-heading-icon, .workspace-icon { width: 43px; height: 43px; display: grid; place-items: center; margin: 0 auto 15px; border-radius: 13px; background: #fff0ef; color: var(--red); }
 .auth-heading .eyebrow { font-size: 9px; }
@@ -42,7 +42,7 @@
 .role-banner { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 21px; padding: 11px; border-radius: 9px; background: #f0faf5; color: #428260; font-size: 11px; }
 .workspace-top-actions { display: flex; align-items: center; gap: 20px; }
 .auth-page > .home-link { width: fit-content; display: flex; margin: 18px auto 0; }
-.profile-page-content { width: min(100% - 36px, 880px); margin: 38px auto 60px; }
+.profile-page-content { width: min(100% - 36px, 960px); margin: 38px auto 60px; }
 .profile-page-heading { margin: 0 0 21px; }
 .profile-page-heading .eyebrow { color: var(--red); font-size: 10px; font-weight: 800; letter-spacing: 1px; }
 .profile-page-heading h1 { margin: 7px 0 5px; font: 800 29px var(--font-display); letter-spacing: -.8px; }

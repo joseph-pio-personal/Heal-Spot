@@ -1,4 +1,4 @@
-.page-width { width: min(1120px, calc(100% - 64px)); margin-inline: auto; }
+.page-width { width: min(1200px, calc(100% - 64px)); margin-inline: auto; }
 .topbar { height: 82px; width: min(1240px, calc(100% - 64px)); margin: 0 auto; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #f4f4f5; }
 .brand { display: inline-flex; align-items: center; gap: 9px; font: 800 21px var(--font-display); letter-spacing: -1.1px; }
 .brand-mark { width: 35px; height: 35px; display: grid; place-items: center; border-radius: 11px; background: var(--red); color: #fff; box-shadow: 0 5px 13px #df383f32; }
