@@ -11,6 +11,7 @@ import {
   Users,
 } from "lucide-react";
 import { apiRequest } from "../../api/client.js";
+import Pagination, { usePagination } from "../admin/Pagination.jsx";
 
 function hospitalDateToday() {
   const parts = new Intl.DateTimeFormat("en-US", {
@@ -29,6 +30,15 @@ function formatCurrency(value) {
 
 function statusLabel(status) {
   return status.replaceAll("_", " ").toLowerCase().replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function availabilityReasonLabel(reason) {
+  return {
+    NO_CLINIC_SESSIONS: "No clinic sessions on this date",
+    DOCTOR_ON_LEAVE: "Doctor is on leave",
+    NO_TOKENS_REMAINING: "All tokens have been booked",
+    CLINIC_SESSIONS_ENDED: "Today's clinic sessions have ended",
+  }[reason] ?? "Not accepting bookings";
 }
 
 function PatientDashboard() {
@@ -50,8 +60,14 @@ function PatientDashboard() {
   const [busy, setBusy] = useState("");
   const [refreshVersion, setRefreshVersion] = useState(0);
   const [error, setError] = useState("");
+  const [availabilityError, setAvailabilityError] = useState("");
   const [trackingError, setTrackingError] = useState("");
   const [notice, setNotice] = useState("");
+  const { page, pageCount, pageRecords, setPage } = usePagination(availability.doctors);
+
+  useEffect(() => {
+    setPage(1);
+  }, [departmentId, search, selectedDate, setPage]);
 
   useEffect(() => {
     let active = true;
@@ -78,19 +94,33 @@ function PatientDashboard() {
 
   useEffect(() => {
     let active = true;
-    const timer = setTimeout(() => {
+    let requestInFlight = false;
+    setAvailabilityLoading(true);
+    const loadAvailability = async () => {
+      if (requestInFlight) return;
+      requestInFlight = true;
       const params = new URLSearchParams({ date: selectedDate });
       if (departmentId) params.set("departmentId", departmentId);
       if (search.trim()) params.set("search", search.trim());
-      setAvailabilityLoading(true);
-      apiRequest(`/api/bookings/availability?${params}`)
-        .then((result) => active && setAvailability(result))
-        .catch((requestError) => active && setError(requestError.message))
-        .finally(() => active && setAvailabilityLoading(false));
-    }, 180);
+      try {
+        const result = await apiRequest(`/api/bookings/availability?${params}`);
+        if (active) {
+          setAvailability(result);
+          setAvailabilityError("");
+        }
+      } catch (requestError) {
+        if (active) setAvailabilityError(requestError.message);
+      } finally {
+        requestInFlight = false;
+        if (active) setAvailabilityLoading(false);
+      }
+    };
+    const timer = setTimeout(loadAvailability, 180);
+    const interval = setInterval(loadAvailability, 10_000);
     return () => {
       active = false;
       clearTimeout(timer);
+      clearInterval(interval);
     };
   }, [departmentId, refreshVersion, search, selectedDate]);
 
@@ -370,60 +400,80 @@ function PatientDashboard() {
             <p>{selectedDate} · Book up to {availability.bookingThrough || "7 days"} ahead.</p>
           </div>
         </div>
+        {availabilityError && <p className="form-message form-error" role="alert">{availabilityError}</p>}
         {availabilityLoading ? (
           <div className="admin-loading"><RefreshCw size={16} /> Checking availability...</div>
         ) : availability.doctors.length === 0 ? (
           <p className="admin-empty">No doctors match this search and date.</p>
         ) : (
-          <div className="patient-doctor-grid">
-            {availability.doctors.map((doctor) => {
-              const duplicate = alreadyBooked(doctor.id);
-              return (
-                <article className="patient-doctor-card" key={doctor.id}>
-                  <div className="patient-doctor-heading">
-                    <div className="admin-doctor-avatar">
-                      {doctor.photoUrl
-                        ? <img alt="" src={doctor.photoUrl} />
-                        : <UserRound size={18} />}
+          <>
+            <div className="patient-doctor-grid">
+              {pageRecords.map((doctor) => {
+                const duplicate = alreadyBooked(doctor.id);
+                return (
+                  <article className="patient-doctor-card" key={doctor.id}>
+                    <div className="patient-doctor-heading">
+                      <div className="admin-doctor-avatar">
+                        {doctor.photoUrl
+                          ? <img alt="" src={doctor.photoUrl} />
+                          : <UserRound size={18} />}
+                      </div>
+                      <div>
+                        <strong>{doctor.name}</strong>
+                        <span>{doctor.department.name}</span>
+                      </div>
                     </div>
-                    <div>
-                      <strong>{doctor.name}</strong>
-                      <span>{doctor.department.name}</span>
-                    </div>
-                  </div>
-                  <p className="patient-doctor-specialty">
-                    {doctor.specialization || doctor.qualification || "General consultation"}
-                  </p>
-                  <div className="patient-doctor-meta">
-                    <span><strong>Fee</strong>{formatCurrency(doctor.consultationFee)}</span>
-                    <span><strong>Tokens left</strong>{doctor.remaining} / {doctor.capacity}</span>
-                    <span><strong>Doctor status</strong>{statusLabel(doctor.doctorStatus)}</span>
-                  </div>
-                  <div className="patient-sessions">
-                    {doctor.schedules.map((schedule) => (
-                      <span key={schedule.id}>
-                        <Clock3 size={12} /> {schedule.startTime}-{schedule.endTime} · {schedule.maxTokens} tokens
+                    <p className="patient-doctor-specialty">
+                      {doctor.specialization || doctor.qualification || "General consultation"}
+                    </p>
+                    <div className="patient-doctor-meta">
+                      <span><strong>Fee</strong>{formatCurrency(doctor.consultationFee)}</span>
+                      <span><strong>Tokens left</strong>{doctor.remaining} / {doctor.capacity}</span>
+                      <span><strong>Doctor status</strong>{statusLabel(doctor.doctorStatus)}</span>
+                      <span className="patient-availability-field">
+                        <strong>Availability</strong>
+                        <span className={doctor.available ? "patient-availability-open" : "patient-availability-closed"}>
+                          {doctor.available ? "Available" : "Unavailable"}
+                        </span>
+                        {doctor.availabilityReason && (
+                          <small>{availabilityReasonLabel(doctor.availabilityReason)}</small>
+                        )}
                       </span>
-                    ))}
-                  </div>
-                  <button
-                    className="button patient-book-button"
-                    disabled={!doctor.available || duplicate || !selectedProfileId || Boolean(busy)}
-                    onClick={() => createBooking(doctor.id)}
-                    type="button"
-                  >
-                    {busy === doctor.id
-                      ? "Booking..."
-                      : duplicate
-                        ? "Already booked"
-                        : doctor.available
-                          ? "Book a token"
-                          : "Unavailable"}
+                    </div>
+                    <div className="patient-sessions">
+                      {doctor.schedules.length === 0 && <span>No clinic sessions on this date.</span>}
+                      {doctor.schedules.map((schedule) => (
+                        <span key={schedule.id}>
+                          <Clock3 size={12} /> {schedule.startTime}-{schedule.endTime} · {schedule.maxTokens} tokens
+                        </span>
+                      ))}
+                    </div>
+                    <button
+                      className="button patient-book-button"
+                      disabled={!doctor.available || duplicate || !selectedProfileId || Boolean(busy)}
+                      onClick={() => createBooking(doctor.id)}
+                      type="button"
+                    >
+                      {busy === doctor.id
+                        ? "Booking..."
+                        : duplicate
+                          ? "Already booked"
+                          : doctor.available
+                            ? "Book a token"
+                            : "Unavailable"}
                   </button>
-                </article>
-              );
-            })}
-          </div>
+                  </article>
+                );
+              })}
+            </div>
+            <Pagination
+              onPageChange={setPage}
+              page={page}
+              pageCount={pageCount}
+              recordLabel="doctor"
+              totalRecords={availability.doctors.length}
+            />
+          </>
         )}
       </section>
 

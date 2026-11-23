@@ -123,9 +123,11 @@ own account or the last active admin.
 
 Patients can create and edit patient profiles, browse date-specific doctor
 availability, book tokens, review or cancel bookings before they are called,
-and track queue progress. Booking is available from the hospital's current
-date through seven calendar days ahead. A profile can hold one active booking
-per doctor per day, so it can book different doctors on the same day. Daily
+and track queue progress. Doctor cards show whether booking is available, why
+a doctor is unavailable, the remaining tokens versus total capacity, and
+refresh availability every 10 seconds. Booking is available from the
+hospital's current date through seven calendar days ahead. A profile can hold
+one active booking per doctor per day, so it can book different doctors on the same day. Daily
 capacity combines all active sessions for that doctor and weekday; cancelled
 tokens release capacity but token numbers are not reused.
 

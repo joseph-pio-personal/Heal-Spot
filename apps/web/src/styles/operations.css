@@ -26,6 +26,10 @@
 .patient-doctor-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 9px 5px; padding: 10px 0; border-top: 1px solid #f1f0f1; border-bottom: 1px solid #f1f0f1; }
 .patient-doctor-meta span { display: grid; gap: 4px; color: #46474e; font-size: 10px; font-weight: 700; }
 .patient-doctor-meta strong { color: #92939a; font-size: 8px; font-weight: 600; }
+.patient-doctor-meta .patient-availability-open, .patient-doctor-meta .patient-availability-closed { display: block; font-size: 10px; font-weight: 750; }
+.patient-doctor-meta .patient-availability-open { color: #32835d; }
+.patient-doctor-meta .patient-availability-closed { color: #bd3038; }
+.patient-doctor-meta .patient-availability-field small { color: #85868e; font-size: 8px; font-weight: 500; line-height: 1.4; }
 .patient-sessions { display: grid; gap: 6px; min-height: 28px; margin: 10px 0; }
 .patient-sessions span { display: flex; align-items: center; gap: 5px; color: #777983; font-size: 9px; }
 .patient-sessions svg { flex: 0 0 auto; color: var(--red); }

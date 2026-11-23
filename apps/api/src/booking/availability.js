@@ -12,7 +12,7 @@ import { serializeSchedule } from "../catalog/validation.js";
 function isSessionAvailable(sessions, date, timeZone, now) {
   if (date !== hospitalLocalDate(now, timeZone)) return sessions.length > 0;
   const localTime = hospitalLocalTime(now, timeZone);
-  return sessions.some((session) => session.endTime > localTime);
+  return sessions.some((session) => session.endTime.toISOString().slice(11, 16) > localTime);
 }
 
 export async function listAvailability(database, { dateValue, departmentId, search }) {
@@ -92,6 +92,15 @@ export async function listAvailability(database, { dateValue, departmentId, sear
       const remaining = Math.max(0, capacity - (usedCapacityByDoctor.get(doctor.id) ?? 0));
       const doctorStatus = statusByDoctor.get(doctor.id) ?? "NOT_YET_ARRIVED";
       const hasFutureSession = isSessionAvailable(sessions, dateValue, timeZone, now);
+      const availabilityReason = capacity === 0
+        ? "NO_CLINIC_SESSIONS"
+        : doctorStatus === "ON_LEAVE"
+          ? "DOCTOR_ON_LEAVE"
+          : remaining === 0
+            ? "NO_TOKENS_REMAINING"
+            : !hasFutureSession
+              ? "CLINIC_SESSIONS_ENDED"
+              : null;
       return {
         id: doctor.id,
         name: doctor.name,
@@ -106,7 +115,8 @@ export async function listAvailability(database, { dateValue, departmentId, sear
         capacity,
         lastTokenNumber,
         remaining,
-        available: capacity > 0 && remaining > 0 && doctorStatus !== "ON_LEAVE" && hasFutureSession,
+        available: availabilityReason === null,
+        availabilityReason,
       };
     }),
   };
